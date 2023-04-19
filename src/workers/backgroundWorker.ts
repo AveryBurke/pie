@@ -1,4 +1,5 @@
-import { select, interpolate, color } from "d3";
+import { select } from "d3-selection";
+import { interpolate } from "d3-interpolate";
 import { arc } from "d3-shape";
 import { Queue } from '../static/queue'
 import renderBackground from "../d3/renderBackground"

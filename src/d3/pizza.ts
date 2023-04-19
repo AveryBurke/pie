@@ -101,7 +101,7 @@ function pizzaChart(): typeof chart {
             const shapesWorker = new Worker(new URL("../workers/shapesWorker", import.meta.url), { type: 'module' })
             const offscreen = canvasNode?.transferControlToOffscreen()
             const offscreen2 = canvasNode2?.transferControlToOffscreen()
-            const voroni = lloyd()
+            // const voroni = lloyd()
 
             backgroundWorker.postMessage({ type: 'set_ctx', canvas: offscreen }, [offscreen!])
             backgroundWorker.postMessage({ type: 'set_dimensions', w: canvasWidth, h: canvasHeight, r: dpi })
@@ -110,48 +110,48 @@ function pizzaChart(): typeof chart {
             shapesWorker.postMessage({ type: 'set_dimensions', w: canvasWidth, h: canvasHeight, r: dpi })
             backgroundWorker.addEventListener('message', e => {
                 const { sectionVerts, sectionCoords } = e.data
-                console.log({ sectionVerts, sectionCoords })
-                if (sectionVerts && !deepEqual(sectionVerts, currentSectionVerts)) {
-                    currentSectionVerts = sectionVerts
-                    const boarder = Object.values(sectionVerts).flat().reduce<number[]>((acc, vert)=>{
-                        const [x, y]= vert as [number, number]
-                        //normalize to the texture sapce, becasue the coordinates are written directly into the textrue
-                        acc.push((x/1280 + 1)/2, (y/720 + 1)/2)
-                        return acc
-                    }, [])
-                    voroni.boarder(boarder)
-                }
-                if (sectionCoords && !deepEqual(sectionCoords, currentSectionCoords)) {
-                    console.log(sectionCoords,currentSectionCoords)
-                    currentSectionCoords = sectionCoords
-                    const nuclei = Object.values(sectionCoords).flat().reduce<number[]>((acc, vert)=>{
-                        const [x, y]= vert as [number, number]
-                        //normalize to the texture sapce, becasue the coordinates are written directly into the textrue
-                        acc.push((x/1280 + 1)/2, (y/720 + 1)/2)
-                        return acc
-                    }, [])
-                    voroni.nuclei(nuclei)
-                }
-                if (!vornoiInitialized) {
-                    console.log('inilizing vornoi module')
-                    voroni
-                        // .numberOfCycles(50)
-                        .subscribe((results:number[]) => {
-                            const coords:[number, number][] = []
-                            for (let i = 0; i < results.length; i += 2){
-                                const x =( (results[i]* 2) - 1) * 1280,
-                                    y = ((results[i + 1] * 2) - 1) * 720
-                                    coords.push([x, y])
-                            }
-                            shapesWorker.postMessage({type:'update_coords', coords})
+                // console.log({ sectionVerts, sectionCoords })
+                // if (sectionVerts && !deepEqual(sectionVerts, currentSectionVerts)) {
+                //     currentSectionVerts = sectionVerts
+                //     const boarder = Object.values(sectionVerts).flat().reduce<number[]>((acc, vert)=>{
+                //         const [x, y]= vert as [number, number]
+                //         //normalize to the texture sapce, becasue the coordinates are written directly into the textrue
+                //         acc.push((x/1280 + 1)/2, (y/720 + 1)/2)
+                //         return acc
+                //     }, [])
+                //     voroni.boarder(boarder)
+                // }
+                // if (sectionCoords && !deepEqual(sectionCoords, currentSectionCoords)) {
+                //     console.log(sectionCoords,currentSectionCoords)
+                //     currentSectionCoords = sectionCoords
+                //     const nuclei = Object.values(sectionCoords).flat().reduce<number[]>((acc, vert)=>{
+                //         const [x, y]= vert as [number, number]
+                //         //normalize to the texture sapce, becasue the coordinates are written directly into the textrue
+                //         acc.push((x/1280 + 1)/2, (y/720 + 1)/2)
+                //         return acc
+                //     }, [])
+                //     voroni.nuclei(nuclei)
+                // }
+                // if (!vornoiInitialized) {
+                //     console.log('inilizing vornoi module')
+                //     voroni
+                //         // .numberOfCycles(50)
+                //         .subscribe((results:number[]) => {
+                //             const coords:[number, number][] = []
+                //             for (let i = 0; i < results.length; i += 2){
+                //                 const x =( (results[i]* 2) - 1) * 1280,
+                //                     y = ((results[i + 1] * 2) - 1) * 720
+                //                     coords.push([x, y])
+                //             }
+                //             shapesWorker.postMessage({type:'update_coords', coords})
 
-                        })
-                    voroni()
-                    vornoiInitialized = true
-                }
-                console.time('it took this long to get a result from the gpu')
-                voroni.render()
-                console.timeEnd('it took this long to get a result from the gpu')
+                //         })
+                //     voroni()
+                //     vornoiInitialized = true
+                // }
+                // console.time('it took this long to get a result from the gpu')
+                // voroni.render()
+                // console.timeEnd('it took this long to get a result from the gpu')
             })
 
 

@@ -1,4 +1,4 @@
-import { select } from "d3";
+import { select } from "d3-selection";
 import { arc, symbol, symbolCircle } from "d3-shape";
 import renderBackground from "../d3/renderBackground"
 // @ts-ignore

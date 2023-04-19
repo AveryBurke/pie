@@ -22,6 +22,8 @@
     "@types/resize-observer-browser": "^0.1.7",
     "d3": "^7.8.2",
     "d3-ease": "^3.0.1",
+    "d3-interpolate": "^3.0.1",
+    "d3-selection": "^3.0.0",
     "d3-shape": "^3.2.0",
     "d3-timer": "^3.0.1",
     "deep-equal": "^2.2.0",
