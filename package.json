@@ -1,7 +1,6 @@
 {
   "name": "visluization_demo",
   "version": "1.0.0",
-  "main": "index.js",
   "license": "MIT",
   "source": "src/index.html",
   "scripts": {
@@ -13,6 +12,7 @@
   },
   "dependencies": {
     "@faker-js/faker": "^7.6.0",
+    "@react-spring/web": "^9.7.2",
     "@types/d3": "^7.4.0",
     "@types/deep-equal": "^1.0.1",
     "@types/earcut": "^2.1.1",
@@ -21,6 +21,9 @@
     "@types/react-dom": "^18.0.11",
     "@types/resize-observer-browser": "^0.1.7",
     "d3": "^7.8.2",
+    "d3-ease": "^3.0.1",
+    "d3-shape": "^3.2.0",
+    "d3-timer": "^3.0.1",
     "deep-equal": "^2.2.0",
     "earcut": "^2.2.4",
     "react": "^18.2.0",
