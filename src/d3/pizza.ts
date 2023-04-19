@@ -1,4 +1,4 @@
-import { select } from "d3";
+import { select } from "d3-selection";
 import { pie } from "d3-shape";
 import colorPallet from "../static/colorPallet";
 import deepEqual from "deep-equal";
