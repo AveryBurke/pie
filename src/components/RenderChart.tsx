@@ -1,4 +1,4 @@
-import { select } from "d3";
+import { select } from "d3-selection";
 import React, { useRef, useLayoutEffect, useEffect, useState, useContext } from "react";
 import { SidebarContext } from "../contexts/SidebarContex";
 import colorPallet from "../static/colorPallet";
@@ -55,11 +55,11 @@ const GenericChart = (): JSX.Element => {
     )
 
     useLayoutEffect(() => {
-        if (render && refChart && select && refDiv.current) {
+        if (render && refChart && select && refDiv && refDiv.current) {
             select(refDiv.current)
                 .call(refChart)
         }
-    }, [render])
+    }, [render, refDiv, refDiv.current, select])
 
     return (
         <div
