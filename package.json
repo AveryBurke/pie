@@ -40,5 +40,9 @@
     "parcel": "^2.8.3",
     "process": "^0.11.10",
     "xmldom-qsa": "^1.1.3-beta"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AveryBurke/pie.git"
   }
 }
