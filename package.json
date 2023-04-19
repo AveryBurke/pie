@@ -1,0 +1,44 @@
+{
+  "name": "visluization_demo",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "source": "src/index.html",
+  "scripts": {
+    "start": "parcel",
+    "build": "parcel build",
+    "browserify": "browserify src/DOMImplementation.js --s xmldom > src/DOMImplementation_bundle.js",
+    "predeploy": "rm -rf dist && parcel build src/index.html --public-url https://averyburke.github.io/pie/",
+    "deploy": "gh-pages -d dist"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^7.6.0",
+    "@types/d3": "^7.4.0",
+    "@types/deep-equal": "^1.0.1",
+    "@types/earcut": "^2.1.1",
+    "@types/offscreencanvas": "^2019.7.0",
+    "@types/react": "^18.0.28",
+    "@types/react-dom": "^18.0.11",
+    "@types/resize-observer-browser": "^0.1.7",
+    "d3": "^7.8.2",
+    "deep-equal": "^2.2.0",
+    "earcut": "^2.2.4",
+    "react": "^18.2.0",
+    "react-beautiful-dnd": "^13.1.1",
+    "react-countup": "^6.4.2",
+    "react-dom": "^18.2.0",
+    "react-select": "^5.7.0",
+    "react-spring": "^9.7.1",
+    "svg-path-properties": "^1.1.0",
+    "twgl.js": "^5.3.1",
+    "typescript": "^4.9.5"
+  },
+  "devDependencies": {
+    "@types/react-beautiful-dnd": "^13.1.3",
+    "browserify": "^17.0.0",
+    "gh-pages": "^5.0.0",
+    "parcel": "^2.8.3",
+    "process": "^0.11.10",
+    "xmldom-qsa": "^1.1.3-beta"
+  }
+}
