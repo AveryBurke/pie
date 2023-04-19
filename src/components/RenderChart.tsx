@@ -54,9 +54,9 @@ const GenericChart = (): JSX.Element => {
     }, []
     )
 
-    useEffect(() => {
-        if (render && refChart) {
-            select(refDiv.current!)
+    useLayoutEffect(() => {
+        if (render && refChart && select && refDiv.current) {
+            select(refDiv.current)
                 .call(refChart)
         }
     }, [render])
