@@ -52,7 +52,9 @@ const SidebarComponentWrapper = ({
         <div className="sidebar-component" key='contrainer' id={`${title}_sidebar-component`}>
             <div className="label-containter">
                 <span>{title}</span>
+                <div hidden={currentKey.includes(dummyValue)}>
                 <div className="reset_button" onClick={() => handleReset()}>reset</div>
+                </div>
             </div>
             <Select styles={{
                 container: (baseStyles, state) => ({
