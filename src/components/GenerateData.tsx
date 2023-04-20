@@ -12,8 +12,8 @@ const GenerateData = () => {
 
     return (
         <div className="sidebar-component">
-            <input id="number_of_rows" min={1} type="number" placeholder='number of rows' onChange={e => setNumberOfRows(+e.target.value)} />
-            <div className="component-button" onClick={handleClick}>generate data</div>
+            <input id="number_of_rows" min={1} type="number" placeholder={`${numberOfRows} users`} onChange={e => setNumberOfRows(+e.target.value)} />
+            <div className="component-button" onClick={handleClick}>generate new users</div>
         </div>
     )
 }
