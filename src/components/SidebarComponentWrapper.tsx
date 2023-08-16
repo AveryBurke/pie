@@ -8,7 +8,7 @@ import { dummyValue } from "../static/initialState";
 const SidebarComponentWrapper = ({
     currentKey,
     title,
-    options,   
+    options,    
     ControlPanel,
     props,
     handleChange,

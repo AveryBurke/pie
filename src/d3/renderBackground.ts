@@ -1,7 +1,7 @@
 import { BaseType, select, Selection } from "d3-selection";
 import { easePolyInOut } from "d3-ease";
 import { timer } from "d3-timer";
-import transition from 'd3-transition'
+import transition from 'd3-transition' //<--there's some kind of bug in d3 where I have to import transition into the namespace to use select(...).transition()
 
 function pizza(): typeof chart {
     let queue: QueueInterface<QueueTask>,
@@ -79,7 +79,6 @@ function pizza(): typeof chart {
                     if (elapsed > duration + 100) t.stop();
                 })
 
-                console.log(selection)
                 selection
                     .select('path')
                     .transition()

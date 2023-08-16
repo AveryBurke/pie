@@ -114,9 +114,9 @@ function vornoiModual(): typeof mod {
                     a_position /= count;
                     vec2 tex_coord = (a_position.xy + 1.0) / 2.0;
                     ivec4 pixelValue = texture(uSampler, tex_coord);
-                    if (pixelValue.r != 1){
-                        a_position = a_origins;
-                    }
+                    // if (pixelValue.r != 2){
+                        // a_position = a_origins;
+                    // }
                
                 // //if the sum shader wasn't able to locate the cell,
                 // //put the seed back into the buffer
@@ -214,6 +214,7 @@ function vornoiModual(): typeof mod {
             polygonBufferInfo = twgl.createBufferInfoFromArrays(gl, polygoneBufferArrays),
 
             vaoInfo = twgl.createVertexArrayInfo(gl, feedbackProgramInfo, voroniBufferInfo),
+            vaoInfo2 = twgl.createVertexArrayInfo(gl, feedbackProgramInfo, originsBufferInfo),
 
             polygonFrameBufferInfo = twgl.createFramebufferInfo(gl, [
                 //store only integer and only on the values on the red channel
@@ -234,24 +235,49 @@ function vornoiModual(): typeof mod {
                     type: gl.FLOAT,
                     minMag: gl.NEAREST
                 }], numberOfSites, textureHeight),
-            tf = gl.createTransformFeedback()
-        gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf)
-        //bind hte voroni buffer to the transfrom feedback object
-        //the feedback program will write to this buffer
-        gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, voroniBufferInfo.attribs!.a_position.buffer)
-        gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null)
-        gl.bindBuffer(gl.ARRAY_BUFFER, null)
+            tf1 = makeTransformFeedback(gl, voroniBufferInfo.attribs!.a_position.buffer),
+            tf2 = makeTransformFeedback(gl, originsBufferInfo.attribs!.a_origins.buffer)
+        // unbind left over stuff
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, null);
+
+        let current = {
+            updateVA: vaoInfo,  // read from position1
+            tf: tf2,                      // write to position2
+            drawVA: vaoInfo2.vertexArrayObject,              // draw with position2
+            buffer: originsBufferInfo.attribs!.a_origins.buffer
+        };
+        // let next = {
+        //     updateVA: vaoInfo2,  // read from position2
+        //     tf: tf1,                      // write to position1
+        //     drawVA: vaoInfo.vertexArrayObject,              // draw with position1
+        //     buffer: voroniBufferInfo.attribs!.a_position.buffer        // retrive coordiantes from position1buffer
+        // };
 
         //update hanlders
         updateNuclei = function () {
             gl.deleteBuffer(voroniBufferInfo.attribs!.a_position.buffer)
             gl.deleteBuffer(originsBufferInfo.attribs!.a_origins.buffer)
             gl.deleteVertexArray(vaoInfo.vertexArrayObject!)
+            gl.deleteVertexArray(vaoInfo2.vertexArrayObject!)
             voroniBufferArrays.a_position.data = new Float32Array(nuclei)
             originsArray.a_origins.data = new Float32Array(nuclei)
             voroniBufferInfo = twgl.createBufferInfoFromArrays(gl, voroniBufferArrays)
             originsBufferInfo = twgl.createBufferInfoFromArrays(gl, originsArray)
-            vaoInfo = twgl.createVertexArrayInfo(gl, feedbackProgramInfo, originsBufferInfo)
+            vaoInfo = twgl.createVertexArrayInfo(gl, feedbackProgramInfo, voroniBufferInfo)
+            vaoInfo2 = twgl.createVertexArrayInfo(gl, feedbackProgramInfo, originsBufferInfo)
+            current = {
+                updateVA: vaoInfo,  // read from position1
+                tf: tf2,                      // write to position2
+                drawVA: vaoInfo2.vertexArrayObject,              // draw with position2
+                buffer: originsBufferInfo.attribs!.a_origins.buffer
+            };
+            // next = {
+            //     updateVA: vaoInfo2,  // read from position2
+            //     tf: tf1,                      // write to position1
+            //     drawVA: vaoInfo.vertexArrayObject,              // draw with position1
+            //     buffer: voroniBufferInfo.attribs!.a_position.buffer        // retrive coordiantes from position1buffer
+            // };
             if (nuclei.length / 2 !== numberOfSites) {
                 numberOfSites = nuclei.length / 2
                 //this must take some overhead, right?
@@ -268,12 +294,13 @@ function vornoiModual(): typeof mod {
                     }], numberOfSites, textureHeight)
 
             }
-            gl.deleteTransformFeedback(tf)
-            tf = gl.createTransformFeedback()
-            gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf)
-            gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, voroniBufferInfo.attribs!.a_position.buffer)
-            gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null)
-            gl.bindBuffer(gl.ARRAY_BUFFER, null)
+            // gl.deleteTransformFeedback(tf1)
+            // gl.deleteTransformFeedback(tf2)
+            // tf = gl.createTransformFeedback()
+            // gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf)
+            // gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, voroniBufferInfo.attribs!.a_position.buffer)
+            // gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null)
+            // gl.bindBuffer(gl.ARRAY_BUFFER, null)
 
         }
 
@@ -293,19 +320,21 @@ function vornoiModual(): typeof mod {
 
         render = function () {
             gl.flush()
-            for (let i = 0; i < numberOfCycles; i++) {
+            for (let i = 0; i < 100; i++) {
                 renderCycle()
                 gl.flush()
             }
-            updateSubscribers()
+            // updateSubscribers()
         }
 
         //boot
         renderBackground()
         //helper funcitons
+        console.log("vao info ",vaoInfo)
+        console.log('buffer info, ',voroniBufferInfo)
         function renderCycle() {
             gl.useProgram(voroniProgramInfo.program)
-            twgl.setBuffersAndAttributes(gl, voroniProgramInfo, voroniBufferInfo)
+            // twgl.setBuffersAndAttributes(gl, voroniProgramInfo, voroniBufferInfo)
             gl.bindFramebuffer(gl.FRAMEBUFFER, voroniFrameBuffer.framebuffer)
             gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, voroniFrameBuffer.attachments[0], 0)
             twgl.resizeCanvasToDisplaySize(gl.canvas as HTMLCanvasElement)
@@ -335,18 +364,17 @@ function vornoiModual(): typeof mod {
             gl.bindBuffer(gl.ARRAY_BUFFER, null)
             //program 3, read from the sum textrue and use transfrom feedback to write to the buffer for the voroni program
             gl.useProgram(feedbackProgramInfo.program)
-            twgl.setBuffersAndAttributes(gl, feedbackProgramInfo, vaoInfo)
+            // gl.bindVertexArray(current.drawVA!)
+            twgl.setBuffersAndAttributes(gl, feedbackProgramInfo, current.updateVA)
 
             gl.enable(gl.RASTERIZER_DISCARD);
 
-            gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf);
+            gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, current.tf);
             gl.beginTransformFeedback(gl.POINTS)
-            twgl.setUniforms(feedbackProgramInfo,{
-                summed:sumFrameBufferInfo.attachments[0],
-                uSampler:polygonFrameBufferInfo.attachments[0],
+            twgl.setUniforms(feedbackProgramInfo, {
+                summed: sumFrameBufferInfo.attachments[0],
+                uSampler: polygonFrameBufferInfo.attachments[0],
             })
-            // gl.bindTexture(gl.TEXTURE_2D, sumFrameBufferInfo.attachments[0])
-            // gl.bindTexture(gl.TEXTURE_2D, polygonFrameBufferInfo.attachments[0])
             gl.drawArrays(gl.POINTS, 0, numberOfSites)
             gl.endTransformFeedback();
             gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
@@ -356,6 +384,14 @@ function vornoiModual(): typeof mod {
             gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null)
             gl.bindBuffer(gl.ARRAY_BUFFER, null)
             gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+
+            // swap which buffer we will read from
+            // and which one we will write to
+            // {
+            //     const temp = current;
+            //     current = next;
+            //     next = temp;
+            // }
         }
 
         function renderBackground() {
@@ -384,10 +420,41 @@ function vornoiModual(): typeof mod {
             return vertices;
         }
 
+        function makeTransformFeedback(gl: WebGL2RenderingContext, buffer: WebGLBuffer) {
+            const tf = gl.createTransformFeedback();
+            gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf);
+            gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, buffer);
+            return tf;
+        }
+        function makeVertexArray(gl: WebGL2RenderingContext, bufLocPairs:[WebGLBuffer, number][]) {
+            const va = gl.createVertexArray();
+            gl.bindVertexArray(va);
+            for (const [buffer, loc] of bufLocPairs) {
+              gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+              gl.enableVertexAttribArray(loc);
+              gl.vertexAttribPointer(
+                  loc,      // attribute location
+                  2,        // number of elements
+                  gl.FLOAT, // type of data
+                  false,    // normalize
+                  0,        // stride (0 = auto)
+                  0,        // offset
+              );
+            } 
+            return va;
+          }
+
+          function makeBuffer(gl:WebGL2RenderingContext, sizeOrData:BufferSource, usage:number) {
+            const buf = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+            gl.bufferData(gl.ARRAY_BUFFER, sizeOrData, usage);
+            return buf;
+          }
+
         function updateSubscribers() {
             gl.flush()
             const results = new Float32Array(numberOfSites * 2);
-            gl.bindBuffer(gl.ARRAY_BUFFER, voroniBufferInfo.attribs!.a_position.buffer,);
+            gl.bindBuffer(gl.ARRAY_BUFFER, current.buffer!);
             gl.getBufferSubData(
                 gl.ARRAY_BUFFER,
                 0,    // byte offset into GPU buffer,
