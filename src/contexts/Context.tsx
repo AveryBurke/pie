@@ -7,6 +7,8 @@ const GenericContext = React.createContext<Values | null>(null);
 
 const GenericContextProvider = (props: any) => {
 
+  
+
   const [state, dispatch] = useReducer(stateReducer, initialState)
   const refChart = useRef<Chart>(pizzaChart())
 

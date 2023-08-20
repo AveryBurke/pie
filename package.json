@@ -4,7 +4,7 @@
   "license": "MIT",
   "source": "src/index.html",
   "scripts": {
-    "start": "parcel",
+    "start": "parcel --no-cache",
     "build": "parcel build",
     "browserify": "browserify src/DOMImplementation.js --s xmldom > src/DOMImplementation_bundle.js",
     "predeploy": "rm -rf dist && parcel build src/index.html --public-url https://averyburke.github.io/pie/",
