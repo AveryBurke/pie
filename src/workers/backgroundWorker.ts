@@ -222,11 +222,15 @@ class worker {
                 for (let i = 0; i < 200; ++i) {
                     const { startAngle, endAngle, innerRadius, outerRadius, id } = d
                     if (id.includes('_border')) {
-                        const randomClampedR = Math.random() * (outerRadius - innerRadius) + innerRadius,
-                            randomClampedTheta = (Math.random() * (endAngle - startAngle) + startAngle) - Math.PI / 2,
-                            x = Math.cos(randomClampedTheta) * randomClampedR,
-                            y = Math.sin(randomClampedTheta) * randomClampedR
-                        coords.push([x, y])
+                        // const randomClampedR = Math.random() * (outerRadius - innerRadius) + innerRadius,
+                        //     randomClampedTheta = (Math.random() * (endAngle - startAngle) + startAngle) - Math.PI / 2,
+                        //     x = Math.cos(randomClampedTheta) * randomClampedR,
+                        //     y = Math.sin(randomClampedTheta) * randomClampedR
+                        // coords.push([x, y])
+                        const centriod = arc().centroid({startAngle, endAngle, innerRadius, outerRadius})
+                        const jitterX = Math.random()
+                        const jitterY = Math.random()
+                        coords.push([centriod[0] + jitterX, centriod[1] + jitterY])
                     }
                 }
                 sectionCoords[d.id] = coords

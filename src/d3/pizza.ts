@@ -2,7 +2,7 @@ import { select } from "d3-selection";
 import { pie } from "d3-shape";
 import colorPallet from "../static/colorPallet";
 import deepEqual from "deep-equal";
-import lloyd from "../static/lloydModule";
+
 
 function pizzaChart(): typeof chart {
 
@@ -22,6 +22,9 @@ function pizzaChart(): typeof chart {
         margin: Margin,
         canvasWidth: number,
         canvasHeight: number,
+
+        //webgpu
+        device: GPUDevice,
 
         //update handlers
         //values that the caller can change after the chart is inilized
@@ -98,16 +101,21 @@ function pizzaChart(): typeof chart {
                 currentSectionCoords:{[id:string]:[number,number][]} = {}
 
             const backgroundWorker = new Worker(new URL("../workers/backgroundWorker", import.meta.url), { type: 'module' })
-            const shapesWorker = new Worker(new URL("../workers/shapesWorker", import.meta.url), { type: 'module' })
+            // const shapesWorker = new Worker(new URL("../workers/shapesWorker", import.meta.url), { type: 'module' })
+            const shapeWorker = new Worker(new URL("../workers/shapeWorker", import.meta.url), { type: 'module' })
             const offscreen = canvasNode?.transferControlToOffscreen()
             const offscreen2 = canvasNode2?.transferControlToOffscreen()
-            // const voroni = lloyd()
-
+            // const gl = offscreen2!.getContext("webgl2")
+            // if (gl!.getExtension("EXT_color_buffer_float")) {
+            //     console.log("voroni error: color extention does not exist");
+            //   }
             backgroundWorker.postMessage({ type: 'set_ctx', canvas: offscreen }, [offscreen!])
             backgroundWorker.postMessage({ type: 'set_dimensions', w: canvasWidth, h: canvasHeight, r: dpi })
             backgroundWorker.postMessage({ type: 'init_chart', sliceSet, sliceAngles, ringSet, ringHeights, sliceColors })
-            shapesWorker.postMessage({ type: 'set_ctx', canvas: offscreen2 }, [offscreen2!])
-            shapesWorker.postMessage({ type: 'set_dimensions', w: canvasWidth, h: canvasHeight, r: dpi })
+            shapeWorker.postMessage({type: "init", canvas:offscreen2},[offscreen2!])
+            
+            // shapesWorker.postMessage({ type: 'set_ctx', canvas: offscreen2 }, [offscreen2!])
+            // shapesWorker.postMessage({ type: 'set_dimensions', w: canvasWidth, h: canvasHeight, r: dpi })
             backgroundWorker.addEventListener('message', e => {
                 const { sectionVerts, sectionCoords } = e.data
                 // console.log({ sectionVerts, sectionCoords })
@@ -115,21 +123,32 @@ function pizzaChart(): typeof chart {
                     currentSectionVerts = sectionVerts
                     const boarder = Object.values(sectionVerts).flat().reduce<number[]>((acc, vert)=>{
                         const [x, y]= vert as [number, number]
-                        //normalize to the texture sapce, becasue the coordinates are written directly into the textrue
-                        acc.push((x/1280 + 1)/2, (y/720 + 1)/2)
+                        //unskew from the aspect ratio and divided by textrue width and height
+                        acc.push((x * (720/1280) * dpi)/512, (y * (720/1280) * dpi) / 512)
                         return acc
                     }, [])
-                    // voroni.boarder(boarder)
+                    const vertices = new Float32Array(boarder)
+                    console.log({vertices})
+                    // shapeWorker.postMessage({type:''})
+                    shapeWorker.postMessage({type:'update_stencil', stencil:vertices})
+                    // gpuWorker.postMessage({type:"draw", vertices:new Float32Array(createCone(4))})
                 }
                 if (sectionCoords && !deepEqual(sectionCoords, currentSectionCoords)) {
                     // console.log(sectionCoords,currentSectionCoords)
                     currentSectionCoords = sectionCoords
-                    const nuclei = Object.values(sectionCoords).flat().reduce<number[]>((acc, vert)=>{
+                    const offsets = Object.values(sectionCoords).flat().reduce<number[]>((acc, vert)=>{
                         const [x, y]= vert as [number, number]
-                        //normalize to the texture sapce, becasue the coordinates are written directly into the textrue
-                        acc.push((x/1280 + 1)/2, (y/720 + 1)/2)
+                        
+                        acc.push((x * (720/1280) * dpi) / 512, (y * (720/1280) * dpi) / 512)
                         return acc
                     }, [])
+                    // const offsets:number[] = [];
+                    // for (let i = 0; i < 100; i++) {
+                    //     offsets.push(Math.random() * 2 - 1, Math.random() * 2 - 1)
+                    // }
+                    console.log("how many offsets? ", offsets.length)
+                    shapeWorker.postMessage({type:"update_offsets", offsets})
+                    shapeWorker.postMessage({type:"render"})
                     // voroni.nuclei(nuclei)
                 }
                 // if (!vornoiInitialized) {
@@ -157,6 +176,7 @@ function pizzaChart(): typeof chart {
 
 
             updateData = function () {
+                console.log({data})
                 const updateSliceCount = Object.fromEntries(sliceSet.map(slice => [slice, data.filter(d => sliceValue(d) === slice).length]))
                 const updateRingCount = Object.fromEntries(ringSet.map(ring => [ring, data.filter(d => ringValue(d) === ring).length]))
                 if (!deepEqual(updateSliceCount, sliceCount)) {
@@ -284,6 +304,7 @@ function pizzaChart(): typeof chart {
         if (typeof updateRingSet === 'function') updateRingSet();
         return chart;
     };
+    
 
     //measurements
     chart.margin = function (value: Margin) {
