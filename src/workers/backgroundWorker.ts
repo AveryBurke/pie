@@ -5,6 +5,7 @@ import { Queue } from '../static/queue'
 import renderBackground from "../d3/renderBackground"
 import { svgPathProperties } from "svg-path-properties"
 import earcut from "earcut";
+import IndexedSet from "../static/indexedSet";
 // @ts-ignore
 import xmldom from "../domparser_bundle";
 
@@ -27,6 +28,8 @@ class worker {
     sliceColors: { [slice: string]: string[] } = {}
     path = arc()({ innerRadius: 50, outerRadius: 300, startAngle: 0, endAngle: 97 * Math.PI / 180 })
     poly = [10, 0, 0, 50, 60, 60, 70, 10]
+    /** assigne an int to each id, for conding ids a texture */
+    idSet = new IndexedSet()
     setContext(ctx: OffscreenCanvasRenderingContext2D) {
         this.ctx = ctx
     }
@@ -66,8 +69,8 @@ class worker {
 
 
 
-
-    generateArcs() {
+    /** "add" and "remove" are only for the id set. there is no penalty for duplicate adds*/
+    generateArcs(state:"add" | "remove" = "add") {
         const { ringSet, ringHeights, sliceSet, sliceColors, sliceAngles } = this
         return sliceSet.reduce<Section[]>((acc, slice) => {
             if (sliceAngles[slice]) {
@@ -76,6 +79,8 @@ class worker {
                     if (ringHeights[ring]) {
                         const { innerRadius, outerRadius } = ringHeights[ring]!
                         const id = `_${slice}_${ring}`
+                        if (state === 'add') this.idSet.insert(id)
+                        if (state === 'remove') this.idSet.remove(id)
                         const slicePallet = sliceColors[slice]!
                         const fill = slicePallet[j % slicePallet.length]!
                         const arc = { id, innerRadius, outerRadius, startAngle, endAngle, fill }
@@ -103,6 +108,7 @@ class worker {
             return ringSet.map((ring, j) => {
                 const { innerRadius, outerRadius } = ringHeights[ring]!
                 const id = `_${slice}_${ring}`
+                this.idSet.insert(id)
                 const slicePallet = sliceColors[slice]!
                 const fill = slicePallet[j % slicePallet.length]!
                 return { id, innerRadius, outerRadius, startAngle, endAngle, fill }
@@ -148,7 +154,7 @@ class worker {
         const { sliceSet } = this
         const outGointSliceAngles = Object.fromEntries(sliceSet.map(slice => [slice, { startAngle: 2 * Math.PI, endAngle: 2 * Math.PI }]))
         this.sliceAngles = outGointSliceAngles
-        const leavingArcs: QueueTask = { type: "sections", input: this.generateArcs() }
+        const leavingArcs: QueueTask = { type: "sections", input: this.generateArcs("remove") }
         this.background.enqueue({ type: 'duration', input: 400 })
         this.background.enqueue(leavingArcs)
         this.sliceSet = []
@@ -183,7 +189,7 @@ class worker {
         ringSet.forEach((ring, i) => {
             const { outerRadius } = this.ringHeights[ring]!
             this.ringHeights[ring] = { innerRadius: outerRadius, outerRadius }
-            const arcsWIthRing = this.generateArcs()
+            const arcsWIthRing = this.generateArcs("remove")
             this.background.enqueue({ type: 'sections', input: arcsWIthRing })
             this.ringSet = ringSet.slice(i)
             delete this.ringHeights[ring]
@@ -192,12 +198,15 @@ class worker {
     }
 
     getPathPoints() {
-        const { generator } = this
-        const sectionCoords: { [id: string]: [number, number][] } = {}
-        const sectionVerts: { [id: string]: [number, number][] } = {}
+        const { generator} = this
+        const sectionCoords: number[] = []
+        const sectionVerts: number[] = []
         const arcs = this.generateArcs() //<--NOTE: destrcutring the method from "this" causes an error. look into that
+        const {idSet} = this
+        console.log({arcs, idSet})
         arcs.forEach(function (d, i) {
             if (d.id.includes('_border')) {
+                const absoluteId = d.id.split("_border")[0]
                 // triangulate the boarder polygon
                 const path = generator(d) || "",
                     num_points = 100,
@@ -209,16 +218,20 @@ class worker {
                     points.push(x)
                     points.push(y)
                 }
-                const ears = earcut(points),//<--returns the indexes of x coordinates of the triangle vertices in the points array
+                const idIndex = idSet.getIndex(absoluteId)
+                const ears = earcut(points)//<--returns the indexes of x coordinates of the triangle vertices in the points array
                     //fetch the coordiantes of the triangle vertices from the points array
-                    vertices = ears.reduce<[number, number][]>((acc, index) => {
-                        const i = index * 2
-                        return [...acc, [points[i]!, points[i + 1]!]]
-                    }, [])
-                sectionVerts[d.id] = vertices
+                    for (let i = 0; i < ears.length; i++) {
+                        const index = ears[i] * 2
+                        sectionVerts.push(points[index], points[index + 1], idIndex);
+                    }
+                //     vertices = ears.reduce<[number, number, number][]>((acc, index) => {
+                //         const i = index * 2
+                //         return [...acc, [points[i]!, points[i + 1]!, idIndex]]
+                //     }, [])
+                // sectionVerts[d.id] = vertices
 
                 //seed the positions within the boarder polygon
-                const coords: [number, number][] = []
                 for (let i = 0; i < 200; ++i) {
                     const { startAngle, endAngle, innerRadius, outerRadius, id } = d
                     if (id.includes('_border')) {
@@ -230,13 +243,12 @@ class worker {
                         const centriod = arc().centroid({startAngle, endAngle, innerRadius, outerRadius})
                         const jitterX = Math.random()
                         const jitterY = Math.random()
-                        coords.push([centriod[0] + jitterX, centriod[1] + jitterY])
+                        sectionCoords.push(centriod[0] + jitterX, centriod[1] + jitterY, idIndex)
                     }
                 }
-                sectionCoords[d.id] = coords
             }
         })
-        self.postMessage({ sectionVerts, sectionCoords })
+        self.postMessage({ sectionVerts, sectionCoords, idSet })
     }
 }
 

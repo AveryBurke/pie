@@ -185,7 +185,7 @@ export default class VornoiMesh {
     this.stencil = stencil;
     this.stencilBufferArrays = {
       a_position: {
-        numComponents: 2,
+        numComponents: 3,
         data: new Float32Array(this.stencil),
         drawType: this.gl.STATIC_DRAW,
       },
@@ -246,6 +246,7 @@ export default class VornoiMesh {
     if (this) {
       const {
         gl,
+        stencilBufferArrays,
         stencilProgram,
         stencilBufferInfo,
         stencilFrameBufferInfo,
@@ -270,8 +271,11 @@ export default class VornoiMesh {
       gl.viewport(0, 0, textureWidth, textureHeight);
       gl.clearBufferiv(gl.COLOR, 0, new Int32Array([-1, 0, 0, 0]));
       //render the polygon to the textrue
-      gl.drawArrays(gl.TRIANGLES, 0, stencil.length / 2);
+      console.log({stencilBufferInfo})
+      
+      gl.drawArrays(gl.TRIANGLES, 0, stencil.length / stencilBufferInfo.attribs!.a_position!.numComponents!);
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      this.debug("u_stencil", this.stencilFrameBufferInfo.attachments[0], 100)
     }
   }
 
@@ -430,10 +434,11 @@ export default class VornoiMesh {
     }
   }
 
-  voroniDebug() {
+  debug(key:string, tex:WebGLTexture, numberOfColors:number) {
     if (this) {
-      const { gl, offsets, quad, vornoiFrameBufferInfo } = this;
-      if (offsets.length > 0) {
+      const { gl, quad, vornoiFrameBufferInfo } = this;
+      if (numberOfColors > 0) {
+        
         const vertexShaderSource = `#version 300 es
             layout(location = 0) in vec2 a_position;
             void main() {
@@ -442,19 +447,18 @@ export default class VornoiMesh {
             `;
         const fragmentShaderSource = `#version 300 es
             precision mediump float;
-            uniform vec3 colors[${offsets.length / 2}];
-            uniform mediump isampler2D u_voroni;
+            uniform vec3 colors[${numberOfColors}];
+            uniform mediump isampler2D ${key};
             out vec4 outColor;
             void main() {
               ivec2 coord = ivec2(gl_FragCoord.xy);
-              ivec4 t = texelFetch(u_voroni, coord, 0);
+              ivec4 t = texelFetch(${key}, coord, 0);
               outColor = vec4(colors[t.r], 1);
             }
             // `;
 
-        const sampler = gl.createSampler();
         const uniforms = {
-          u_voroni: vornoiFrameBufferInfo.attachments[0],
+          [key]: tex,
         };
         const debugProgramInfo = twgl.createProgramInfo(
           gl,
@@ -475,7 +479,7 @@ export default class VornoiMesh {
         };
 
         const colors: number[] = [];
-        for (let i = 0; i < offsets.length / 2; i++) {
+        for (let i = 0; i < numberOfColors; i++) {
           colors.push(Math.random(), Math.random(), Math.random());
         }
         const debugBufferInto = twgl.createBufferInfoFromArrays(
@@ -508,8 +512,9 @@ export default class VornoiMesh {
         cycles,
       } = this;
       // for (let i = 0; i < cycles; i++) {
-      this.renderVornoi();
-      this.voroniDebug();
+      // this.renderVornoi();
+      // this.debug("u_voroni", this.vornoiFrameBufferInfo.attachments[0], this.offsets.length / 2);
+      // this.debug("u_stencil", this.stencilFrameBufferInfo.attachments[0], 1)
       // this.renderIntermediateTexture();
       // this.transformFeedbackStep();
       // }

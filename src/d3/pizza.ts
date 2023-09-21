@@ -117,17 +117,24 @@ function pizzaChart(): typeof chart {
             // shapesWorker.postMessage({ type: 'set_ctx', canvas: offscreen2 }, [offscreen2!])
             // shapesWorker.postMessage({ type: 'set_dimensions', w: canvasWidth, h: canvasHeight, r: dpi })
             backgroundWorker.addEventListener('message', e => {
-                const { sectionVerts, sectionCoords } = e.data
-                // console.log({ sectionVerts, sectionCoords })
+                const { sectionVerts, sectionCoords, idSet } = e.data
+                console.log({ sectionVerts, sectionCoords, idSet })
                 if (sectionVerts && !deepEqual(sectionVerts, currentSectionVerts)) {
                     currentSectionVerts = sectionVerts
-                    const boarder = Object.values(sectionVerts).flat().reduce<number[]>((acc, vert)=>{
-                        const [x, y]= vert as [number, number]
-                        //unskew from the aspect ratio and divided by textrue width and height
-                        acc.push((x * (720/1280) * dpi)/512, (y * (720/1280) * dpi) / 512)
-                        return acc
-                    }, [])
-                    const vertices = new Float32Array(boarder)
+                    console.log("current section verts: ", sectionVerts)
+                    /** this is intended to be an array of vec3s of the form (x, y, arc_id) */
+                    const vertices:number[] = []
+                    for (let i = 0; i < sectionVerts.length; i += 3){
+                        /**             x                                    y                      id */
+                        vertices.push((sectionVerts[i] * (720/1280) * dpi)/512, (sectionVerts[i + 1] * (720/1280) * dpi) / 512, sectionVerts[i + 2])
+                    }
+                    
+                    // Object.values(sectionVerts).flat().reduce<number[]>((acc, vert)=>{
+                    //     const [x, y]= vert as [number, number]
+                    //     //unskew from the aspect ratio and divided by textrue width and height
+                    //     acc.push((x * (720/1280) * dpi)/512, (y * (720/1280) * dpi) / 512)
+                    //     return acc
+                    // }, [])
                     console.log({vertices})
                     // shapeWorker.postMessage({type:''})
                     shapeWorker.postMessage({type:'update_stencil', stencil:vertices})
@@ -136,19 +143,25 @@ function pizzaChart(): typeof chart {
                 if (sectionCoords && !deepEqual(sectionCoords, currentSectionCoords)) {
                     // console.log(sectionCoords,currentSectionCoords)
                     currentSectionCoords = sectionCoords
-                    const offsets = Object.values(sectionCoords).flat().reduce<number[]>((acc, vert)=>{
-                        const [x, y]= vert as [number, number]
+                    const offsets:number[] = [];
+                    for (let i = 0; i < sectionCoords.length; i += 3) {
+                         /**             x                                    y                      id */
+                         offsets.push((sectionCoords[i] * (720/1280) * dpi)/512, (sectionCoords[i + 1] * (720/1280) * dpi) / 512, sectionCoords[i + 2])
+                    }
+                    // const offsets = Object.values(sectionCoords).flat().reduce<number[]>((acc, vert)=>{
+                    //     const [x, y]= vert as [number, number]
                         
-                        acc.push((x * (720/1280) * dpi) / 512, (y * (720/1280) * dpi) / 512)
-                        return acc
-                    }, [])
+                    //     acc.push((x * (720/1280) * dpi) / 512, (y * (720/1280) * dpi) / 512)
+                    //     return acc
+                    // }, [])
                     // const offsets:number[] = [];
                     // for (let i = 0; i < 100; i++) {
                     //     offsets.push(Math.random() * 2 - 1, Math.random() * 2 - 1)
                     // }
-                    console.log("how many offsets? ", offsets.length)
-                    shapeWorker.postMessage({type:"update_offsets", offsets})
-                    shapeWorker.postMessage({type:"render"})
+                    console.log({offsets})
+
+                    // shapeWorker.postMessage({type:"update_offsets", offsets})
+                    // shapeWorker.postMessage({type:"render"})
                     // voroni.nuclei(nuclei)
                 }
                 // if (!vornoiInitialized) {
