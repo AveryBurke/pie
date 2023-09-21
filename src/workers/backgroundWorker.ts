@@ -84,8 +84,8 @@ class worker {
                         const slicePallet = sliceColors[slice]!
                         const fill = slicePallet[j % slicePallet.length]!
                         const arc = { id, innerRadius, outerRadius, startAngle, endAngle, fill }
-                        const border = { id: id + '_border', innerRadius: innerRadius + 5, outerRadius: outerRadius - 5, startAngle: startAngle + 5 * Math.PI / 180, endAngle: endAngle - 5 * Math.PI / 180, fill: 'black' }
-                        acc = [...acc, arc, border]
+                        // const border = { id: id + '_border', innerRadius: innerRadius + 5, outerRadius: outerRadius - 5, startAngle: startAngle + 5 * Math.PI / 180, endAngle: endAngle - 5 * Math.PI / 180, fill: 'black' }
+                        acc = [...acc, arc]
                     }
                     return acc
                 }, [])
@@ -205,9 +205,7 @@ class worker {
         const {idSet} = this
         console.log({arcs, idSet})
         arcs.forEach(function (d, i) {
-            if (d.id.includes('_border')) {
-                const absoluteId = d.id.split("_border")[0]
-                // triangulate the boarder polygon
+                // triangulate the polygon
                 const path = generator(d) || "",
                     num_points = 100,
                     points: number[] = [],
@@ -218,7 +216,7 @@ class worker {
                     points.push(x)
                     points.push(y)
                 }
-                const idIndex = idSet.getIndex(absoluteId)
+                const idIndex = idSet.getIndex(d.id)
                 const ears = earcut(points)//<--returns the indexes of x coordinates of the triangle vertices in the points array
                     //fetch the coordiantes of the triangle vertices from the points array
                     for (let i = 0; i < ears.length; i++) {
@@ -231,10 +229,9 @@ class worker {
                 //     }, [])
                 // sectionVerts[d.id] = vertices
 
-                //seed the positions within the boarder polygon
+                //seed the positions within the polygon
                 for (let i = 0; i < 200; ++i) {
                     const { startAngle, endAngle, innerRadius, outerRadius, id } = d
-                    if (id.includes('_border')) {
                         // const randomClampedR = Math.random() * (outerRadius - innerRadius) + innerRadius,
                         //     randomClampedTheta = (Math.random() * (endAngle - startAngle) + startAngle) - Math.PI / 2,
                         //     x = Math.cos(randomClampedTheta) * randomClampedR,
@@ -244,9 +241,7 @@ class worker {
                         const jitterX = Math.random()
                         const jitterY = Math.random()
                         sectionCoords.push(centriod[0] + jitterX, centriod[1] + jitterY, idIndex)
-                    }
                 }
-            }
         })
         self.postMessage({ sectionVerts, sectionCoords, idSet })
     }
