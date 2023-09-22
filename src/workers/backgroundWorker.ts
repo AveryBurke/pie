@@ -41,7 +41,7 @@ class worker {
     }
 
     draw() {
-        const { ctx, canvasWidth, canvasHeight, ratio, path, poly } = this
+        const { ctx, canvasWidth, canvasHeight, ratio } = this
         if (ctx) {
             ctx.save();
             ctx.clearRect(0, 0, Math.floor(canvasWidth * ratio), Math.floor(canvasHeight * ratio));
@@ -236,7 +236,7 @@ class worker {
                         //     randomClampedTheta = (Math.random() * (endAngle - startAngle) + startAngle) - Math.PI / 2,
                         //     x = Math.cos(randomClampedTheta) * randomClampedR,
                         //     y = Math.sin(randomClampedTheta) * randomClampedR
-                        // coords.push([x, y])
+                        // sectionCoords.push(x, y, idIndex)
                         const centriod = arc().centroid({startAngle, endAngle, innerRadius, outerRadius})
                         const jitterX = Math.random()
                         const jitterY = Math.random()

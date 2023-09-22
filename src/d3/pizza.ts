@@ -145,8 +145,10 @@ function pizzaChart(): typeof chart {
                     currentSectionCoords = sectionCoords
                     const offsets:number[] = [];
                     for (let i = 0; i < sectionCoords.length; i += 3) {
+                        // if (sectionCoords[i + 2] === 1){
                          /**             x                                    y                      id */
                          offsets.push((sectionCoords[i] * (720/1280) * dpi)/512, (sectionCoords[i + 1] * (720/1280) * dpi) / 512, sectionCoords[i + 2])
+                        // }
                     }
                     // const offsets = Object.values(sectionCoords).flat().reduce<number[]>((acc, vert)=>{
                     //     const [x, y]= vert as [number, number]
@@ -160,8 +162,8 @@ function pizzaChart(): typeof chart {
                     // }
                     console.log({offsets})
 
-                    // shapeWorker.postMessage({type:"update_offsets", offsets})
-                    // shapeWorker.postMessage({type:"render"})
+                    shapeWorker.postMessage({type:"update_offsets", offsets})
+                    shapeWorker.postMessage({type:"render"})
                     // voroni.nuclei(nuclei)
                 }
                 // if (!vornoiInitialized) {

@@ -122,7 +122,7 @@ export default class VornoiMesh {
     );
     this.vornoiBufferArrays = {
       a_position:{
-        numComponents:2,
+        numComponents:3,
         divisor: 1,
         data: new Float32Array([...this.offsets]),
         drawType:gl.DYNAMIC_DRAW
@@ -203,7 +203,7 @@ export default class VornoiMesh {
       this.vornoiBufferArrays = {
         ...vornoiBufferArrays,
           a_position:{
-            numComponents:2,
+            numComponents:3,
             divisor: 1,
             data: new Float32Array(offsets),
             drawType:gl.DYNAMIC_DRAW
@@ -226,7 +226,7 @@ export default class VornoiMesh {
             minMag: gl.NEAREST,
           },
         ],
-        this.offsets.length / 2,
+        this.offsets.length / 3,
         textureHeight
       );
       gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, transformFeedback);
@@ -270,12 +270,14 @@ export default class VornoiMesh {
       // twgl.resizeCanvasToDisplaySize(gl.canvas as HTMLCanvasElement);
       gl.viewport(0, 0, textureWidth, textureHeight);
       gl.clearBufferiv(gl.COLOR, 0, new Int32Array([-1, 0, 0, 0]));
+      // gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT );
+      // gl.clearColor(10, 0, 0, 1);
       //render the polygon to the textrue
       console.log({stencilBufferInfo})
       
       gl.drawArrays(gl.TRIANGLES, 0, stencil.length / stencilBufferInfo.attribs!.a_position!.numComponents!);
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      this.debug("u_stencil", this.stencilFrameBufferInfo.attachments[0], 100)
+      // this.debug("u_stencil", this.stencilFrameBufferInfo.attachments[0], 100)
     }
   }
 
@@ -316,7 +318,8 @@ export default class VornoiMesh {
         // twgl.resizeCanvasToDisplaySize(gl.canvas);
         gl.viewport(0, 0, textureWidth, textureHeight);
         const uniforms = {
-          u_stencil:stencilFrameBufferInfo.attachments[0]
+          u_stencil:stencilFrameBufferInfo.attachments[0],
+          u_background_index: (offsets.length / 3) + 1
         }
         twgl.setUniforms(vornoiProgram, uniforms)
         //set the background 'color' to -1//
@@ -331,13 +334,15 @@ export default class VornoiMesh {
           gl.TRIANGLE_FAN,
           0,
           //@ts-ignore
-          vornoiBufferArrays.a_instance.data.length / 3,
+          vornoiBufferArrays.a_instance.data.length / vornoiBufferArrays.a_instance.numComponents,
           //@ts-ignore
-          vornoiBufferArrays.a_position.data.length / 2
+          vornoiBufferArrays.a_position.data.length / vornoiBufferArrays.a_position.numComponents
         );
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.bindBuffer(gl.ARRAY_BUFFER, null);
         gl.disable(gl.DEPTH_TEST);
+        //@ts-ignore
+        // this.debug("u_vornoi", this.vornoiFrameBufferInfo.attachments[0], (vornoiBufferArrays.a_position.data.length / vornoiBufferArrays.a_position.numComponents) + 1)
       }
     }
   }
@@ -371,7 +376,7 @@ export default class VornoiMesh {
           intermediateBufferInfo
         );
         // twgl.resizeCanvasToDisplaySize(gl.canvas as HTMLCanvasElement);
-        gl.viewport(0, 0, offsets.length / 2, textureHeight);
+        // gl.viewport(0, 0, offsets.length / 2, textureHeight);
         gl.bindFramebuffer(
           gl.FRAMEBUFFER,
           intermediateFrameBufferInfo.framebuffer
@@ -434,10 +439,10 @@ export default class VornoiMesh {
     }
   }
 
-  debug(key:string, tex:WebGLTexture, numberOfColors:number) {
+  debug(key:string, tex:WebGLTexture, colors:number[]) {
     if (this) {
       const { gl, quad, vornoiFrameBufferInfo } = this;
-      if (numberOfColors > 0) {
+      if (colors.length > 0) {
         
         const vertexShaderSource = `#version 300 es
             layout(location = 0) in vec2 a_position;
@@ -447,7 +452,7 @@ export default class VornoiMesh {
             `;
         const fragmentShaderSource = `#version 300 es
             precision mediump float;
-            uniform vec3 colors[${numberOfColors}];
+            uniform vec3 colors[${colors.length}];
             uniform mediump isampler2D ${key};
             out vec4 outColor;
             void main() {
@@ -478,10 +483,10 @@ export default class VornoiMesh {
           },
         };
 
-        const colors: number[] = [];
-        for (let i = 0; i < numberOfColors; i++) {
-          colors.push(Math.random(), Math.random(), Math.random());
-        }
+        // const colors: number[] = [];
+        // for (let i = 0; i < numberOfColors; i++) {
+        //   colors.push(Math.random(), Math.random(), Math.random());
+        // }
         const debugBufferInto = twgl.createBufferInfoFromArrays(
           gl,
           debugBufferArrays
@@ -496,9 +501,76 @@ export default class VornoiMesh {
           debugProgramInfo.program,
           "colors"
         );
+        // console.log({colors})
         gl.uniform3fv(arrayUniform, new Float32Array(colors));
         twgl.setUniforms(debugProgramInfo, uniforms);
         gl.drawArrays(gl.TRIANGLES, 0, quad.length / 2);
+      }
+    }
+  }
+
+  initialRender(){
+    if (this) {
+      const {
+        gl,
+        vornoiProgram,
+        vornoiFrameBufferInfo,
+        vornoiBufferInfo,
+        textureWidth,
+        textureHeight,
+        offsets,
+        vornoiBufferArrays,
+        stencilFrameBufferInfo
+      } = this;
+      // console.log("rendering with: ", {
+      //   gl,
+      //   vornoiProgram,
+      //   vornoiFrameBufferInfo,
+      //   textureWidth,
+      //   textureHeight,
+      //   offsets,
+      //   vertex,
+      // });
+      if (offsets.length > 0) {
+        gl.useProgram(vornoiProgram.program);
+        twgl.setBuffersAndAttributes(gl, vornoiProgram, vornoiBufferInfo);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, vornoiFrameBufferInfo.framebuffer);
+        gl.framebufferTexture2D(
+          gl.FRAMEBUFFER,
+          gl.COLOR_ATTACHMENT0,
+          gl.TEXTURE_2D,
+          vornoiFrameBufferInfo.attachments[0],
+          0
+        );
+        //@ts-ignore
+        // twgl.resizeCanvasToDisplaySize(gl.canvas);
+        gl.viewport(0, 0, textureWidth, textureHeight);
+        const uniforms = {
+          u_stencil:stencilFrameBufferInfo.attachments[0],
+          u_background_index: (offsets.length / 3) + 1
+        }
+        twgl.setUniforms(vornoiProgram, uniforms)
+        //set the background 'color' to -1//
+        gl.clearBufferiv(gl.COLOR, 0, new Int32Array([-1, 0, 0, 0]));
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LEQUAL);
+        gl.clearDepth(1);
+        gl.clear(gl.DEPTH_BUFFER_BIT);
+        console.log("drawing voroni with array buffer ", vornoiBufferArrays);
+        console.log("drawing voroni with buffer info", vornoiBufferInfo);
+        gl.drawArraysInstanced(
+          gl.TRIANGLE_FAN,
+          0,
+          //@ts-ignore
+          vornoiBufferArrays.a_instance.data.length / vornoiBufferArrays.a_instance.numComponents,
+          //@ts-ignore
+          vornoiBufferArrays.a_position.data.length / vornoiBufferArrays.a_position.numComponents
+        );
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        gl.disable(gl.DEPTH_TEST);
+        //@ts-ignore
+        // this.debug("u_vornoi", this.vornoiFrameBufferInfo.attachments[0], (vornoiBufferArrays.a_position.data.length / vornoiBufferArrays.a_position.numComponents) + 1)
       }
     }
   }
@@ -509,14 +581,22 @@ export default class VornoiMesh {
         // renderVornoi,
         // renderIntermediateTexture,
         // transformFeedbackStep,
+        offsets,
         cycles,
       } = this;
+      const debugColors:number[] = [];
+      for (let i = 0; i < offsets.length / 3; i++) {
+        debugColors.push(Math.random(), Math.random(), Math.random())
+      }
       // for (let i = 0; i < cycles; i++) {
-      // this.renderVornoi();
-      // this.debug("u_voroni", this.vornoiFrameBufferInfo.attachments[0], this.offsets.length / 2);
-      // this.debug("u_stencil", this.stencilFrameBufferInfo.attachments[0], 1)
-      // this.renderIntermediateTexture();
-      // this.transformFeedbackStep();
+      setInterval(() => {
+
+      
+      this.renderVornoi();
+      this.renderIntermediateTexture();
+      this.transformFeedbackStep();
+      this.debug("u_vornoi", this.vornoiFrameBufferInfo.attachments[0], debugColors)
+      }, 400)
       // }
       // this.getPositions();
     }
@@ -540,7 +620,7 @@ export default class VornoiMesh {
             vornoiBufferInfo.attribs!.a_position.buffer
           );
           gl.getBufferSubData(gl.ARRAY_BUFFER, 0, output);
-          // console.log({ output });
+          console.log({ output });
         } else {
           setTimeout(waitForResult);
         }
