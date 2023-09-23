@@ -269,6 +269,9 @@ export default class VornoiMesh {
     }
   }
 
+  /**
+   * render the background polygones to an uint texture. Each poly gone will be colored accroding to its unique integer id
+   */
   renderStencil() {
     if (this) {
       const {
@@ -304,7 +307,10 @@ export default class VornoiMesh {
       // this.debug("u_stencil", this.stencilFrameBufferInfo.attachments[0], 100)
     }
   }
-
+  /**
+   * render vornoi cells to a uint texture. Each cell is colord according to its index in the offsets array. this servers as its unique id.
+   * each cell will only be drawn to the canvas if its corresponding arc_id matches the id of the pixel from the stencil texture
+   */
   renderVornoi() {
     if (this) {
       const {
@@ -341,8 +347,6 @@ export default class VornoiMesh {
         gl.depthFunc(gl.LEQUAL);
         gl.clearDepth(1);
         gl.clear(gl.DEPTH_BUFFER_BIT);
-        // console.log("drawing voroni with array buffer ", vornoiBufferArrays);
-        // console.log("drawing voroni with buffer info", vornoiBufferInfo);
         gl.drawArraysInstanced(
           gl.TRIANGLE_FAN,
           0,
@@ -364,6 +368,10 @@ export default class VornoiMesh {
     }
   }
 
+  /**
+   * render sums to a texture that has deminention number_of_cells X vornoi_texture_height. 
+   * where the "columns" (the x coordinates) are the id of each vornoi cell and the "rows" (the y coordinates) are the sum of all that cell's pixles along the coresponding row in the vornoi texture 
+   */
   renderIntermediateTexture() {
     if (this) {
       const {
@@ -403,6 +411,9 @@ export default class VornoiMesh {
     }
   }
 
+  /**
+   * sum along the columns of the intermediate texture and write the resulting vec2 into the vornoi buffer to seed the next round
+   */
   transformFeedbackStep() {
     if (this) {
       const {
@@ -412,7 +423,7 @@ export default class VornoiMesh {
         offsets,
         transformFeedback,
       } = this;
-      //read from the intermediate textrue and use transfrom feedback to write to the buffer for the voroni program
+      //read from the intermediate texture and use transfrom feedback to write to the buffer for the voroni program
       gl.useProgram(transformFeedbackProgram.program);
       twgl.setBuffersAndAttributes(
         gl,
@@ -446,9 +457,23 @@ export default class VornoiMesh {
     }
   }
 
+  /**
+   * @param key name of a sampler uniform;
+   * @param tex the texture to samplel
+   * @param colors array of RGB colors. One for each unique value to display;
+   * @returns displays the data on a uint texture using the provided colros;
+   * 
+   * 
+   * ex:
+   *  for (let i = 0; i < offsets.length / 2; i++) {
+          debugColors.push(Math.random(), Math.random(), Math.random())
+      }
+   *   ... RUN RENDER CYCLE ...
+   *   this.debug("u_vornoi", this.vornoiFrameBufferInfo.attachments[0], debugColors)
+   */
   debug(key: string, tex: WebGLTexture, colors: number[]) {
     if (this) {
-      const { gl, quad, vornoiFrameBufferInfo } = this;
+      const { gl, quad } = this;
       if (colors.length > 0) {
         const vertexShaderSource = `#version 300 es
             layout(location = 0) in vec2 a_position;
@@ -499,7 +524,6 @@ export default class VornoiMesh {
           debugProgramInfo.program,
           "colors"
         );
-        // console.log({colors})
         gl.uniform3fv(arrayUniform, new Float32Array(colors));
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
@@ -512,19 +536,19 @@ export default class VornoiMesh {
   render() {
     if (this) {
       const { cycles, offsets } = this;
-      const debugColors:number[] = []
-      for (let i = 0; i < offsets.length / 2; i++) {
-          debugColors.push(Math.random(), Math.random(), Math.random())
-      }
+      // const debugColors:number[] = []
+      // for (let i = 0; i < offsets.length / 2; i++) {
+      //     debugColors.push(Math.random(), Math.random(), Math.random())
+      // }
       this.cyclesLeft = cycles
       for (let i = 0; i < cycles; i++) {
         this.renderVornoi();
         this.renderIntermediateTexture();
         this.transformFeedbackStep();
-        this.cyclesLeft--;
+        // this.cyclesLeft--;
       }
-      this.debug("u_vornoi", this.vornoiFrameBufferInfo.attachments[0], debugColors)
-      // this.getPositions();
+      // this.debug("u_vornoi", this.vornoiFrameBufferInfo.attachments[0], debugColors)
+      this.getPositions();
     }
   }
 
