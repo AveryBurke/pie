@@ -8,10 +8,12 @@ self.addEventListener("message", (eve) => {
     canvas,
     stencil,
     offsets,
+    offsetArcIds,
   }: {
     canvas: OffscreenCanvas;
     stencil: number[];
     offsets: number[];
+    offsetArcIds:number[];
     type: "init" | "update_stencil" | "update_offsets" | "rener";
   } = eve.data;
   console.log("msg ", eve.data);
@@ -30,8 +32,8 @@ self.addEventListener("message", (eve) => {
       }
     }
     case "update_offsets": {
-      if (offsets && vornoi) {
-        vornoi.updateOffsets(offsets);
+      if (offsets && offsetArcIds && vornoi) {
+        vornoi.updateOffsets(offsets, offsetArcIds);
         vornoi.renderVornoi();
       }
     }

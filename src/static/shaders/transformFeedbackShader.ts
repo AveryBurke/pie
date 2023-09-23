@@ -1,8 +1,6 @@
 export default {
     vertex:`#version 300 es
-
-    in vec2 a_origins;
-
+    
     out vec2 a_position;
 
     uniform sampler2D summed;

@@ -117,8 +117,8 @@ function pizzaChart(): typeof chart {
             // shapesWorker.postMessage({ type: 'set_ctx', canvas: offscreen2 }, [offscreen2!])
             // shapesWorker.postMessage({ type: 'set_dimensions', w: canvasWidth, h: canvasHeight, r: dpi })
             backgroundWorker.addEventListener('message', e => {
-                const { sectionVerts, sectionCoords, idSet } = e.data
-                console.log({ sectionVerts, sectionCoords, idSet })
+                const { sectionVerts, sectionCoords} = e.data
+                console.log({ sectionVerts, sectionCoords})
                 if (sectionVerts && !deepEqual(sectionVerts, currentSectionVerts)) {
                     currentSectionVerts = sectionVerts
                     console.log("current section verts: ", sectionVerts)
@@ -144,10 +144,12 @@ function pizzaChart(): typeof chart {
                     // console.log(sectionCoords,currentSectionCoords)
                     currentSectionCoords = sectionCoords
                     const offsets:number[] = [];
+                    const offsetArcIds:number[] = [];
                     for (let i = 0; i < sectionCoords.length; i += 3) {
                         // if (sectionCoords[i + 2] === 1){
                          /**             x                                    y                      id */
-                         offsets.push((sectionCoords[i] * (720/1280) * dpi)/512, (sectionCoords[i + 1] * (720/1280) * dpi) / 512, sectionCoords[i + 2])
+                         offsets.push((sectionCoords[i] * (720/1280) * dpi)/512, -(sectionCoords[i + 1] * (720/1280) * dpi) / 512)
+                         offsetArcIds.push(sectionCoords[i + 2])
                         // }
                     }
                     // const offsets = Object.values(sectionCoords).flat().reduce<number[]>((acc, vert)=>{
@@ -162,7 +164,7 @@ function pizzaChart(): typeof chart {
                     // }
                     console.log({offsets})
 
-                    shapeWorker.postMessage({type:"update_offsets", offsets})
+                    shapeWorker.postMessage({type:"update_offsets", offsets, offsetArcIds})
                     shapeWorker.postMessage({type:"render"})
                     // voroni.nuclei(nuclei)
                 }

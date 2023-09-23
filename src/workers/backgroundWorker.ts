@@ -230,17 +230,17 @@ class worker {
                 // sectionVerts[d.id] = vertices
 
                 //seed the positions within the polygon
-                for (let i = 0; i < 200; ++i) {
+                for (let i = 0; i < 100; ++i) {
                     const { startAngle, endAngle, innerRadius, outerRadius, id } = d
-                        // const randomClampedR = Math.random() * (outerRadius - innerRadius) + innerRadius,
-                        //     randomClampedTheta = (Math.random() * (endAngle - startAngle) + startAngle) - Math.PI / 2,
-                        //     x = Math.cos(randomClampedTheta) * randomClampedR,
-                        //     y = Math.sin(randomClampedTheta) * randomClampedR
-                        // sectionCoords.push(x, y, idIndex)
-                        const centriod = arc().centroid({startAngle, endAngle, innerRadius, outerRadius})
-                        const jitterX = Math.random()
-                        const jitterY = Math.random()
-                        sectionCoords.push(centriod[0] + jitterX, centriod[1] + jitterY, idIndex)
+                        const randomClampedR = Math.random() * (outerRadius - innerRadius) + innerRadius,
+                            randomClampedTheta = (Math.random() * (endAngle - startAngle) + startAngle) - Math.PI / 2,
+                            x = Math.cos(randomClampedTheta) * randomClampedR,
+                            y = Math.sin(randomClampedTheta) * randomClampedR
+                        sectionCoords.push(x, y, idIndex)
+                        // const centriod = arc().centroid({startAngle, endAngle, innerRadius, outerRadius})
+                        // const jitterX = Math.random()
+                        // const jitterY = Math.random()
+                        // sectionCoords.push(centriod[0] + jitterX, centriod[1] + jitterY, idIndex)
                 }
         })
         self.postMessage({ sectionVerts, sectionCoords, idSet })
