@@ -203,7 +203,6 @@ class worker {
         const sectionVerts: number[] = []
         const arcs = this.generateArcs() //<--NOTE: destrcutring the method from "this" causes an error. look into that
         const {idSet} = this
-        console.log({arcs, idSet})
         arcs.forEach(function (d, i) {
                 // triangulate the polygon
                 const path = generator(d) || "",
@@ -243,7 +242,8 @@ class worker {
                         // sectionCoords.push(centriod[0] + jitterX, centriod[1] + jitterY, idIndex)
                 }
         })
-        self.postMessage({ sectionVerts, sectionCoords, idSet })
+        console.log("outgoing msg ", { sectionVerts, sectionCoords})
+        self.postMessage({ sectionVerts, sectionCoords})
     }
 }
 
@@ -274,7 +274,7 @@ self.addEventListener('message', msg => {
             sliceAngles?: { [slice: string]: { startAngle: number, endAngle: number } }
             sliceColors?: { [slice: string]: string[] }
         } = msg.data
-        
+    console.log("msg ", msg.data)
     if (type === 'set_ctx' && canvas) {
         const ctx = canvas.getContext('2d')
         brw.setContext(ctx!)

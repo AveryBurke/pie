@@ -118,27 +118,17 @@ function pizzaChart(): typeof chart {
             // shapesWorker.postMessage({ type: 'set_dimensions', w: canvasWidth, h: canvasHeight, r: dpi })
             backgroundWorker.addEventListener('message', e => {
                 const { sectionVerts, sectionCoords} = e.data
-                console.log({ sectionVerts, sectionCoords})
+                // console.log({ sectionVerts, sectionCoords})
                 if (sectionVerts && !deepEqual(sectionVerts, currentSectionVerts)) {
                     currentSectionVerts = sectionVerts
-                    console.log("current section verts: ", sectionVerts)
+                    // console.log("current section verts: ", sectionVerts)
                     /** this is intended to be an array of vec3s of the form (x, y, arc_id) */
                     const vertices:number[] = []
                     for (let i = 0; i < sectionVerts.length; i += 3){
                         /**             x                                    y                      id */
                         vertices.push((sectionVerts[i] * (720/1280) * dpi)/512, (sectionVerts[i + 1] * (720/1280) * dpi) / 512, sectionVerts[i + 2])
                     }
-                    
-                    // Object.values(sectionVerts).flat().reduce<number[]>((acc, vert)=>{
-                    //     const [x, y]= vert as [number, number]
-                    //     //unskew from the aspect ratio and divided by textrue width and height
-                    //     acc.push((x * (720/1280) * dpi)/512, (y * (720/1280) * dpi) / 512)
-                    //     return acc
-                    // }, [])
-                    console.log({vertices})
-                    // shapeWorker.postMessage({type:''})
                     shapeWorker.postMessage({type:'update_stencil', stencil:vertices})
-                    // gpuWorker.postMessage({type:"draw", vertices:new Float32Array(createCone(4))})
                 }
                 if (sectionCoords && !deepEqual(sectionCoords, currentSectionCoords)) {
                     // console.log(sectionCoords,currentSectionCoords)
@@ -152,18 +142,6 @@ function pizzaChart(): typeof chart {
                          offsetArcIds.push(sectionCoords[i + 2])
                         // }
                     }
-                    // const offsets = Object.values(sectionCoords).flat().reduce<number[]>((acc, vert)=>{
-                    //     const [x, y]= vert as [number, number]
-                        
-                    //     acc.push((x * (720/1280) * dpi) / 512, (y * (720/1280) * dpi) / 512)
-                    //     return acc
-                    // }, [])
-                    // const offsets:number[] = [];
-                    // for (let i = 0; i < 100; i++) {
-                    //     offsets.push(Math.random() * 2 - 1, Math.random() * 2 - 1)
-                    // }
-                    console.log({offsets})
-
                     shapeWorker.postMessage({type:"update_offsets", offsets, offsetArcIds})
                     shapeWorker.postMessage({type:"render"})
                     // voroni.nuclei(nuclei)
