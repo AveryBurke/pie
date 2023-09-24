@@ -54,10 +54,22 @@ export default class VornoiMesh {
     this.gl = gl;
     this.callBack = callback;
     this.transformFeedback = gl.createTransformFeedback()!;
+  
     if (!gl.getExtension("EXT_color_buffer_float")) {
       console.error("voroni error: color extention does not exist");
     }
+    let redExt:WEBGL_compressed_texture_etc | EXT_texture_compression_rgtc | null = gl.getExtension("WEBGL_compressed_texture_etc") || gl.getExtension('EXT_texture_compression_rgtc')
+    if (!redExt){
+      console.error("compressed textures not supported on this machine")
+    }
+    console.log({redExt})
+    // let floatExtention = gl.getExtension("EXT_texture_compression_bptc")
+    // if (!floatExtention){
+    //   console.error("compressed floating point texture not avaiable on this machine")
+    // }
 
+
+    
     this.stencilProgram = twgl.createProgramInfo(
       gl,
       [stencilShaderSource.vertex, stencilShaderSource.fragment],
@@ -78,6 +90,7 @@ export default class VornoiMesh {
       gl,
       this.stencilBufferArrays
     );
+    
     this.stencilFrameBufferInfo = twgl.createFramebufferInfo(
       gl,
       [
@@ -92,6 +105,9 @@ export default class VornoiMesh {
       textureWidth,
       textureHeight
     );
+
+
+
     this.vornoiProgram = twgl.createProgramInfo(
       gl,
       [vornoiShader.vertex, vornoiShader.fragment],
@@ -556,17 +572,18 @@ export default class VornoiMesh {
   render() {
     if (this) {
       const { cycles, offsets } = this;
-      const debugColors:number[] = []
-      for (let i = 0; i < offsets.length / 2; i++) {
-          debugColors.push(Math.random(), Math.random(), Math.random())
-      }
+      // const debugColors:number[] = []
+      // for (let i = 0; i < offsets.length / 2; i++) {
+      //     debugColors.push(Math.random(), Math.random(), Math.random())
+      // }
       for (let i = 0; i < cycles; i++) {
+        this.gl.flush()
         this.renderVornoi();
         this.renderIntermediateTexture();
         this.transformFeedbackStep();
       }
-      this.debug("u_vornoi", this.vornoiFrameBufferInfo.attachments[0], debugColors)
-      // this.getPositions();
+      // this.debug("u_vornoi", this.vornoiFrameBufferInfo.attachments[0], debugColors)
+      this.getPositions();
     }
   }
 

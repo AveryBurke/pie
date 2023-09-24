@@ -49,8 +49,12 @@ function pizzaChart(): typeof chart {
                 pieRadius = pieDiameter / 2,
                 canvas = root.append('canvas'),
                 canvas2 = root.append('canvas'),
+                canvas3 = root.append('canvas'),
                 canvasNode = canvas.node(),
-                canvasNode2 = canvas2.node()
+                canvasNode2 = canvas2.node(),
+                canvasNode3 = canvas3.node(),
+                textureW = 324,
+                textureH = 324
 
             if (canvasNode) {
                 canvasNode.style.width = canvasWidth + "px";
@@ -66,11 +70,22 @@ function pizzaChart(): typeof chart {
                 canvasNode2.style.width = canvasWidth + "px";
                 canvasNode2.style.height = canvasHeight + "px";
                 canvasNode2.style.position = 'absolute'
-                canvasNode2.style.zIndex = "1"
+                canvasNode2.style.zIndex = "2"
                 canvasNode2.width = Math.floor(canvasWidth * dpi);
                 canvasNode2.height = Math.floor(canvasHeight * dpi);
-                canvasNode2.id = "shapes"
+                canvasNode2.id = "compute"
             }
+
+            if (canvasNode3) {
+                canvasNode3.style.width = canvasWidth + "px";
+                canvasNode3.style.height = canvasHeight + "px";
+                canvasNode3.style.position = 'absolute'
+                canvasNode3.style.zIndex = "1"
+                canvasNode3.width = Math.floor(canvasWidth * dpi);
+                canvasNode3.height = Math.floor(canvasHeight * dpi);
+                canvasNode3.id = "shapes"
+            }
+
 
             let ringValue = (d: any) => d[ringKey],
                 sliceValue = (d: any) => d[sliceKey],
@@ -105,6 +120,7 @@ function pizzaChart(): typeof chart {
             const shapeWorker = new Worker(new URL("../workers/shapeWorker", import.meta.url), { type: 'module' })
             const offscreen = canvasNode?.transferControlToOffscreen()
             const offscreen2 = canvasNode2?.transferControlToOffscreen()
+            const offscreen3 = canvasNode3?.transferControlToOffscreen()
             // const gl = offscreen2!.getContext("webgl2")
             // if (gl!.getExtension("EXT_color_buffer_float")) {
             //     console.log("voroni error: color extention does not exist");
@@ -112,7 +128,7 @@ function pizzaChart(): typeof chart {
             backgroundWorker.postMessage({ type: 'set_ctx', canvas: offscreen }, [offscreen!])
             backgroundWorker.postMessage({ type: 'set_dimensions', w: canvasWidth, h: canvasHeight, r: dpi })
             backgroundWorker.postMessage({ type: 'init_chart', sliceSet, sliceAngles, ringSet, ringHeights, sliceColors })
-            shapeWorker.postMessage({type: "init", canvas:offscreen2},[offscreen2!])
+            shapeWorker.postMessage({type: "init", computeCanvas:offscreen2, canvas:offscreen3, textureW, textureH},[offscreen2!, offscreen3!])
             
             // shapesWorker.postMessage({ type: 'set_ctx', canvas: offscreen2 }, [offscreen2!])
             // shapesWorker.postMessage({ type: 'set_dimensions', w: canvasWidth, h: canvasHeight, r: dpi })
@@ -126,7 +142,7 @@ function pizzaChart(): typeof chart {
                     const vertices:number[] = []
                     for (let i = 0; i < sectionVerts.length; i += 3){
                         /**             x                                    y                      id */
-                        vertices.push((sectionVerts[i] * (720/1280) * dpi)/512, (sectionVerts[i + 1] * (720/1280) * dpi) / 512, sectionVerts[i + 2])
+                        vertices.push((sectionVerts[i] * (720/1280) * dpi) / textureW, (sectionVerts[i + 1] * (720/1280) * dpi) / textureH, sectionVerts[i + 2])
                     }
                     shapeWorker.postMessage({type:'update_stencil', stencil:vertices})
                 }
@@ -137,8 +153,8 @@ function pizzaChart(): typeof chart {
                     const offsetArcIds:number[] = [];
                     for (let i = 0; i < sectionCoords.length; i += 3) {
                         // if (sectionCoords[i + 2] === 1){
-                         /**             x                                    y                      id */
-                         offsets.push((sectionCoords[i] * (720/1280) * dpi)/512, -(sectionCoords[i + 1] * (720/1280) * dpi) / 512)
+                         /**             x                                    y               */       
+                         offsets.push((sectionCoords[i] * (720/1280) * dpi)/textureW, -(sectionCoords[i + 1] * (720/1280) * dpi) / textureH)
                          offsetArcIds.push(sectionCoords[i + 2])
                         // }
                     }
