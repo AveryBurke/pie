@@ -65,7 +65,7 @@ function pizzaChart(): typeof chart {
                 canvasNode.height = Math.floor(canvasHeight * dpi);
                 canvasNode.id = "background"
             }
-
+            /** this canvas is only for the webgl2 context. it's only used for rendering when displaying debug textures */
             if (canvasNode2) {
                 canvasNode2.style.width = canvasWidth + "px";
                 canvasNode2.style.height = canvasHeight + "px";
@@ -128,7 +128,7 @@ function pizzaChart(): typeof chart {
             backgroundWorker.postMessage({ type: 'set_ctx', canvas: offscreen }, [offscreen!])
             backgroundWorker.postMessage({ type: 'set_dimensions', w: canvasWidth, h: canvasHeight, r: dpi })
             backgroundWorker.postMessage({ type: 'init_chart', sliceSet, sliceAngles, ringSet, ringHeights, sliceColors })
-            shapeWorker.postMessage({type: "init", computeCanvas:offscreen2, canvas:offscreen3, textureW, textureH},[offscreen2!, offscreen3!])
+            shapeWorker.postMessage({type: "init", computeCanvas:offscreen2, canvas:offscreen3, textureW, textureH, radius:pieDiameter},[offscreen2!, offscreen3!])
             
             // shapesWorker.postMessage({ type: 'set_ctx', canvas: offscreen2 }, [offscreen2!])
             // shapesWorker.postMessage({ type: 'set_dimensions', w: canvasWidth, h: canvasHeight, r: dpi })
@@ -137,29 +137,40 @@ function pizzaChart(): typeof chart {
                 // console.log({ sectionVerts, sectionCoords})
                 if (sectionVerts && !deepEqual(sectionVerts, currentSectionVerts)) {
                     currentSectionVerts = sectionVerts
-                    // console.log("current section verts: ", sectionVerts)
                     /** this is intended to be an array of vec3s of the form (x, y, arc_id) */
                     const vertices:number[] = []
                     for (let i = 0; i < sectionVerts.length; i += 3){
                         /**             x                                    y                      id */
-                        vertices.push((sectionVerts[i] * (720/1280) * dpi) / textureW, (sectionVerts[i + 1] * (720/1280) * dpi) / textureH, sectionVerts[i + 2])
+                        // vertices.push((sectionVerts[i] * (720/1280)) / textureW, (sectionVerts[i + 1] * (720/1280)), sectionVerts[i + 2])
+                        vertices.push((sectionVerts[i]/pieDiameter) * 2, (sectionVerts[i + 1]/pieDiameter * 2), sectionVerts[i + 2])
                     }
                     shapeWorker.postMessage({type:'update_stencil', stencil:vertices})
                 }
                 if (sectionCoords && !deepEqual(sectionCoords, currentSectionCoords)) {
                     // console.log(sectionCoords,currentSectionCoords)
                     currentSectionCoords = sectionCoords
-                    const offsets:number[] = [];
-                    const offsetArcIds:number[] = [];
-                    for (let i = 0; i < sectionCoords.length; i += 3) {
-                        // if (sectionCoords[i + 2] === 1){
-                         /**             x                                    y               */       
-                         offsets.push((sectionCoords[i] * (720/1280) * dpi)/textureW, -(sectionCoords[i + 1] * (720/1280) * dpi) / textureH)
-                         offsetArcIds.push(sectionCoords[i + 2])
-                        // }
+                    let offsets:number[] = [];
+                    let offsetArcIds:number[] = [];
+                    for (let i = 0; i < sectionCoords.length; i += 3) {     
+                        // offsets.push((sectionCoords[i] * (720/1280) * dpi)/textureW, -(sectionCoords[i + 1] * (720/1280) * dpi) / textureH)
+                        offsets.push((sectionCoords[i]/pieDiameter) * 2, -(sectionCoords[i + 1]/pieDiameter * 2))
+                        offsetArcIds.push(sectionCoords[i + 2])
                     }
-                    shapeWorker.postMessage({type:"update_offsets", offsets, offsetArcIds})
-                    shapeWorker.postMessage({type:"render"})
+                    console.log({offsets})
+                    // for (let i = 0; i < sectionCoords.length; i += 3) {     
+                    //     offsets.push(sectionCoords[i], sectionCoords[i + 1])
+                    //     offsetArcIds.push(sectionCoords[i + 2])
+                    // }
+                    // shapeWorker.postMessage({type:"draw", offsets})
+
+                    // if (offsetArcIds.length > 100 && offsetArcIds[offsetArcIds.length - 1] > 0){
+                        shapeWorker.postMessage({type:"render_in_chunks", offsets, offsetArcIds})
+                    // } else {
+                        // console.log('rendering')
+                        // shapeWorker.postMessage({type:"update_offsets", offsets, offsetArcIds})
+                        // shapeWorker.postMessage({type:"render"})
+                    // }
+                    
                     // voroni.nuclei(nuclei)
                 }
                 // if (!vornoiInitialized) {
@@ -187,7 +198,6 @@ function pizzaChart(): typeof chart {
 
 
             updateData = function () {
-                console.log({data})
                 const updateSliceCount = Object.fromEntries(sliceSet.map(slice => [slice, data.filter(d => sliceValue(d) === slice).length]))
                 const updateRingCount = Object.fromEntries(ringSet.map(ring => [ring, data.filter(d => ringValue(d) === ring).length]))
                 if (!deepEqual(updateSliceCount, sliceCount)) {

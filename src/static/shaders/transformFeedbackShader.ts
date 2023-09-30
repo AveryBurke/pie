@@ -1,6 +1,7 @@
 export default {
     vertex:`#version 300 es
     
+    layout(location = 1) in vec2 a_origin;
     out vec2 a_position;
 
     uniform sampler2D summed;
@@ -9,8 +10,9 @@ export default {
         ivec2 tex_size = textureSize(summed, 0);
         float count = 0.0;
         a_position = vec2(0.0);
+        vec3 t;
         for (int y = 0; y < tex_size.y; y++){
-            vec3 t = texelFetch(summed, ivec2(gl_VertexID, y), 0).xyz; 
+            t = texelFetch(summed, ivec2(gl_VertexID, y), 0).xyz; 
             a_position += t.xy;
             count += t.z;
         }
@@ -21,6 +23,8 @@ export default {
         */
         if (int(count) > 0){
             a_position  = (a_position / count) * 2.0 - 1.0;
+        } else {
+            a_position = a_origin;
         }
     }`,
     fragment:`#version 300 es

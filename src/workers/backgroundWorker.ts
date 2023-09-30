@@ -229,20 +229,21 @@ class worker {
                 // sectionVerts[d.id] = vertices
 
                 //seed the positions within the polygon
-                for (let i = 0; i < 100; ++i) {
-                    const { startAngle, endAngle, innerRadius, outerRadius, id } = d
+                const { startAngle, endAngle, innerRadius, outerRadius, id } = d
+                const centroid = arc().centroid({startAngle, endAngle, innerRadius, outerRadius})
+                // const centroid = [Math.round(x), Math.round(y)]
+                // console.log({centroid})
+                for (let i = 0; i < 500; ++i) {
                         const randomClampedR = Math.random() * (outerRadius - innerRadius) + innerRadius,
                             randomClampedTheta = (Math.random() * (endAngle - startAngle) + startAngle) - Math.PI / 2,
                             x = Math.cos(randomClampedTheta) * randomClampedR,
                             y = Math.sin(randomClampedTheta) * randomClampedR
                         sectionCoords.push(x, y, idIndex)
-                        // const centriod = arc().centroid({startAngle, endAngle, innerRadius, outerRadius})
                         // const jitterX = Math.random()
                         // const jitterY = Math.random()
-                        // sectionCoords.push(centriod[0] + jitterX, centriod[1] + jitterY, idIndex)
+                        // sectionCoords.push(centroid[0] + jitterX, centroid[1] + jitterY, idIndex)
                 }
         })
-        console.log("outgoing msg ", { sectionVerts, sectionCoords})
         self.postMessage({ sectionVerts, sectionCoords})
     }
 }
@@ -274,7 +275,6 @@ self.addEventListener('message', msg => {
             sliceAngles?: { [slice: string]: { startAngle: number, endAngle: number } }
             sliceColors?: { [slice: string]: string[] }
         } = msg.data
-    console.log("msg ", msg.data)
     if (type === 'set_ctx' && canvas) {
         const ctx = canvas.getContext('2d')
         brw.setContext(ctx!)
