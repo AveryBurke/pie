@@ -62,7 +62,6 @@ class worker {
                 }
             })
             ctx.globalAlpha = 1
-            ctx.stroke()
             ctx.restore()
         }
     }
@@ -233,7 +232,7 @@ class worker {
                 const centroid = arc().centroid({startAngle, endAngle, innerRadius, outerRadius})
                 // const centroid = [Math.round(x), Math.round(y)]
                 // console.log({centroid})
-                for (let i = 0; i < 500; ++i) {
+                for (let i = 0; i < 100; ++i) {
                         const randomClampedR = Math.random() * (outerRadius - innerRadius) + innerRadius,
                             randomClampedTheta = (Math.random() * (endAngle - startAngle) + startAngle) - Math.PI / 2,
                             x = Math.cos(randomClampedTheta) * randomClampedR,

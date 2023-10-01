@@ -1,5 +1,7 @@
 import VornoiMesh from "../static/lloydClass";
 import xmldom from "../domparser_bundle";
+import renderShapes from "../d3/rednerShapes";
+import shapes from "../static/shapes";
 import { select } from "d3-selection";
 import { interpolate } from "d3-interpolate";
 let vornoi: InstanceType<typeof VornoiMesh>;
@@ -10,8 +12,8 @@ let chunk = 0;
 let chunkColors = ['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99','#b15928']
 let celarPrev = true
 let backgroundRadius = 0;
-
-
+let shapeRenderer = renderShapes()
+let data:Datum[] = []
 
 const DOMImplementation = xmldom.DOMImplementation;
 let dom: Document = new DOMImplementation().createDocument()
@@ -45,6 +47,14 @@ self.addEventListener("message", (eve) => {
       textureWidth = textureW;
       textureHeight = textureH;
       init(computeCanvas);
+      shapeRenderer.data([])
+      shapeRenderer.colorSet(chunkColors)
+      shapeRenderer.colorValues({"bob":'#a6cee3'})
+      shapeRenderer.shapeSet([shapes('circle', 5)])
+      shapeRenderer.shapeValues({"bob":shapes('circle', 5)})
+      shapeRenderer.drawShapes(() => draw())
+
+      select(dom).call(shapeRenderer)
     }
     break;
     case "update_stencil":
@@ -84,13 +94,39 @@ self.addEventListener("message", (eve) => {
 });
 
 function handlePositions({payload, keepOpen}:{payload:Float32Array, keepOpen:boolean}) {
-  draw(payload, keepOpen);
+  for (let i = 0; i < payload.length; i += 2) {
+    const d:Datum = {id:`${Math.floor((i + 1) / 2)}`, x:payload[i], y:payload[i + 1], colorValue:'bob', shapeValue:'bob'}
+    data.push(d)
+  }
+  if (!keepOpen){
+    shapeRenderer.data(data)
+    data = []
+  }
 }
 
-function draw(points: Float32Array, keepOpen:boolean) {
-  console.log('drawing ', points)
+function draw() {
+  const elements = select(dom).selectAll<HTMLElement, any>(`custom.shape`)
+  ctx.save();
+  ctx.clearRect(0, 0, 1280 * 2, 720 * 2);
+  elements.each(function () {
+    const node = select<HTMLElement, Datum>(this).select('path'),
+                xCoord = +node.attr('x'),
+                yCoord = +node.attr('y'),
+                fill = node.attr('fill')
+                ctx.fillStyle = fill;
+                ctx.setTransform(2, 0, 0, 2,(xCoord * backgroundRadius) + 1280 , -(yCoord  * backgroundRadius) + 720)
+                ctx.beginPath();
+                // ctx.globalAlpha = +node.attr('opacity')
+                const svgPath = node.attr('d')
+                console.log({svgPath, fill, })
+                if (svgPath){
+                    ctx.fill(new Path2D(svgPath))
+                }
+  })
+  ctx.globalAlpha = 1;
+  ctx.restore()
   // if (ctx) {
-  //   ctx.save();
+  //   
   //   if (celarPrev) ctx.clearRect(0, 0, 1280 * 2, 720 * 2);
   //   for (let i = 0; i < points.length; i += 2) {
   //     ctx.setTransform(2,0, 0, 2,(points[i] * backgroundRadius) + 1280 , -(points[i + 1]  * backgroundRadius) + 720)
