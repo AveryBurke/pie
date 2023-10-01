@@ -53,8 +53,8 @@ function pizzaChart(): typeof chart {
                 canvasNode = canvas.node(),
                 canvasNode2 = canvas2.node(),
                 canvasNode3 = canvas3.node(),
-                textureW = 324,
-                textureH = 324
+                textureW = 312,
+                textureH = 312
 
             if (canvasNode) {
                 canvasNode.style.width = canvasWidth + "px";
@@ -200,6 +200,16 @@ function pizzaChart(): typeof chart {
             updateData = function () {
                 const updateSliceCount = Object.fromEntries(sliceSet.map(slice => [slice, data.filter(d => sliceValue(d) === slice).length]))
                 const updateRingCount = Object.fromEntries(ringSet.map(ring => [ring, data.filter(d => ringValue(d) === ring).length]))
+                const arcCount:{[arc_id:string]:number} = {}
+                for (let i = 0; i < sliceSet.length; i++) {
+                    const slice = sliceSet[i]
+                    for (let j = 0; j < ringSet.length; j++) {
+                        const ring = ringSet[j]
+                        arcCount[`_${slice}_${ring}`] = data.filter(d => d[sliceKey] === slice && d[ringKey] === ring).length
+                    }
+                }
+                console.log("arc count: ", arcCount)
+                backgroundWorker.postMessage({type:"update_arc_count", arcCount})
                 if (!deepEqual(updateSliceCount, sliceCount)) {
                     sliceCount = updateSliceCount
                     updateSliceAngles()
@@ -219,6 +229,15 @@ function pizzaChart(): typeof chart {
             }
 
             updateSliceSet = function () {
+                const arcCount:{[arc_id:string]:number} = {}
+                for (let i = 0; i < sliceSet.length; i++) {
+                    const slice = sliceSet[i]
+                    for (let j = 0; j < ringSet.length; j++) {
+                        const ring = ringSet[j]
+                        arcCount[`_${slice}_${ring}`] = data.filter(d => d[sliceKey] === slice && d[ringKey] === ring).length
+                    }
+                }
+                backgroundWorker.postMessage({type:"update_arc_count", arcCount})
                 if (sliceColorsShouldChange) {
                     updateSliceColors()
                     sliceColorsShouldChange = false
@@ -232,10 +251,18 @@ function pizzaChart(): typeof chart {
                 backgroundWorker.postMessage({
                     type: 'remove_rings'
                 })
-
             }
 
             updateRingSet = function () {
+                const arcCount:{[arc_id:string]:number} = {}
+                for (let i = 0; i < sliceSet.length; i++) {
+                    const slice = sliceSet[i]
+                    for (let j = 0; j < ringSet.length; j++) {
+                        const ring = ringSet[j]
+                        arcCount[`_${slice}_${ring}`] = data.filter(d => d[sliceKey] === slice && d[ringKey] === ring).length
+                    }
+                }
+                backgroundWorker.postMessage({type:"update_arc_count", arcCount})
                 ringCount = Object.fromEntries(ringSet.map(ring => [ring, data.filter(d => ringValue(d) === ring).length]))
                 updateRingHeights()
             }

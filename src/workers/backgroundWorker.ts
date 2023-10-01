@@ -28,6 +28,7 @@ class worker {
     sliceColors: { [slice: string]: string[] } = {}
     path = arc()({ innerRadius: 50, outerRadius: 300, startAngle: 0, endAngle: 97 * Math.PI / 180 })
     poly = [10, 0, 0, 50, 60, 60, 70, 10]
+    arcCount: { [arc_id:string] : number } = {}
     /** assigne an int to each id, for conding ids a texture */
     idSet = new IndexedSet()
     setContext(ctx: OffscreenCanvasRenderingContext2D) {
@@ -38,6 +39,10 @@ class worker {
         this.canvasWidth = w
         this.canvasHeight = h
         this.ratio = r
+    }
+
+    updateArcCount(arcCount: { [arc_id:string]: number }){
+        this.arcCount = arcCount;
     }
 
     draw() {
@@ -62,6 +67,7 @@ class worker {
                 }
             })
             ctx.globalAlpha = 1
+
             ctx.restore()
         }
     }
@@ -201,7 +207,7 @@ class worker {
         const sectionCoords: number[] = []
         const sectionVerts: number[] = []
         const arcs = this.generateArcs() //<--NOTE: destrcutring the method from "this" causes an error. look into that
-        const {idSet} = this
+        const {idSet, arcCount} = this
         arcs.forEach(function (d, i) {
                 // triangulate the polygon
                 const path = generator(d) || "",
@@ -231,8 +237,8 @@ class worker {
                 const { startAngle, endAngle, innerRadius, outerRadius, id } = d
                 const centroid = arc().centroid({startAngle, endAngle, innerRadius, outerRadius})
                 // const centroid = [Math.round(x), Math.round(y)]
-                // console.log({centroid})
-                for (let i = 0; i < 100; ++i) {
+                console.log({arcCount, id:d.id})
+                for (let i = 0; i < arcCount[d.id]; ++i) {
                         const randomClampedR = Math.random() * (outerRadius - innerRadius) + innerRadius,
                             randomClampedTheta = (Math.random() * (endAngle - startAngle) + startAngle) - Math.PI / 2,
                             x = Math.cos(randomClampedTheta) * randomClampedR,
@@ -260,7 +266,8 @@ self.addEventListener('message', msg => {
         ringHeights,
         sliceSet,
         sliceAngles,
-        sliceColors
+        sliceColors,
+        arcCount
     }:
         {
             type: string,
@@ -273,6 +280,7 @@ self.addEventListener('message', msg => {
             ringHeights?: { [ring: string]: { innerRadius: number, outerRadius: number } }
             sliceAngles?: { [slice: string]: { startAngle: number, endAngle: number } }
             sliceColors?: { [slice: string]: string[] }
+            arcCount?:  { [arc_id:string]: number }
         } = msg.data
     if (type === 'set_ctx' && canvas) {
         const ctx = canvas.getContext('2d')
@@ -292,6 +300,9 @@ self.addEventListener('message', msg => {
     }
     if (type === 'remove_rings') {
         brw.removeRings()
+    }
+    if (type === "update_arc_count" && arcCount){
+        brw.updateArcCount(arcCount)
     }
     if (type === 'remove_slices') {
         brw.removeSlices()

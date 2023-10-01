@@ -49,7 +49,7 @@ self.addEventListener("message", (eve) => {
       init(computeCanvas);
       shapeRenderer.data([])
       shapeRenderer.colorSet(chunkColors)
-      shapeRenderer.colorValues({"bob":'#a6cee3'})
+      shapeRenderer.colorValues({"bob":'#1f78b4'})
       shapeRenderer.shapeSet([shapes('circle', 5)])
       shapeRenderer.shapeValues({"bob":shapes('circle', 5)})
       shapeRenderer.drawShapes(() => draw())
@@ -116,9 +116,8 @@ function draw() {
                 ctx.fillStyle = fill;
                 ctx.setTransform(2, 0, 0, 2,(xCoord * backgroundRadius) + 1280 , -(yCoord  * backgroundRadius) + 720)
                 ctx.beginPath();
-                // ctx.globalAlpha = +node.attr('opacity')
+                // ctx.globalAlpha = +node.attr('opacity') // something's up with opacity
                 const svgPath = node.attr('d')
-                console.log({svgPath, fill, })
                 if (svgPath){
                     ctx.fill(new Path2D(svgPath))
                 }
