@@ -424,6 +424,7 @@ export default class VornoiMesh {
         0
       );
       this.gl.bindTexture(this.gl.TEXTURE_2D, this.vornoiFrameBufferInfo.attachments[0]);
+      this.gl.clearBufferfv(this.gl.COLOR, 0, new Float32Array([-1, 0, 0, 1]))
       this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
       this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
       this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
@@ -544,10 +545,10 @@ export default class VornoiMesh {
   }
 
   render() {
-      // const debugColors:number[] = []
-      // for (let i = 0; i < this.offsets.length / 2; i++) {
-      //     debugColors.push(Math.random(), Math.random(), Math.random())
-      // }
+      const debugColors:number[] = []
+      for (let i = 0; i < this.offsets.length / 2; i++) {
+          debugColors.push(Math.random(), Math.random(), Math.random())
+      }
       // console.log('rendering with offsets ', this.offsets)
       for (let i = 0; i < this.cycles; i++) {
         this.gl.flush()
@@ -555,7 +556,7 @@ export default class VornoiMesh {
         this.renderIntermediateTexture();
         this.transformFeedbackStep();
       }
-      // this.debug("u_vornoi", this.vornoiFrameBufferInfo.attachments[0], debugColors)
+      this.debug("u_vornoi", this.vornoiFrameBufferInfo.attachments[0], debugColors)
       return this.getBatchPositions();
   
   }

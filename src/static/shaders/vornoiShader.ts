@@ -24,6 +24,8 @@ export default {
         ivec4 t = texelFetch(u_stencil, coord, 0);
         if (t.r == v_ID.y){
             outColor.r = v_ID.x; 
+        } else {
+          outColor.r = -1;
         }
     }`,
 };
