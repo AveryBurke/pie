@@ -546,9 +546,9 @@ export default class VornoiMesh {
 
   render() {
       const debugColors:number[] = []
-      for (let i = 0; i < this.offsets.length / 2; i++) {
-          debugColors.push(Math.random(), Math.random(), Math.random())
-      }
+      // for (let i = 0; i < this.offsets.length / 2; i++) {
+      //     debugColors.push(Math.random(), Math.random(), Math.random())
+      // }
       // console.log('rendering with offsets ', this.offsets)
       for (let i = 0; i < this.cycles; i++) {
         this.gl.flush()
@@ -556,35 +556,35 @@ export default class VornoiMesh {
         this.renderIntermediateTexture();
         this.transformFeedbackStep();
       }
-      this.debug("u_vornoi", this.vornoiFrameBufferInfo.attachments[0], debugColors)
+      // this.debug("u_vornoi", this.vornoiFrameBufferInfo.attachments[0], debugColors)
       return this.getBatchPositions();
   
   }
 
   async renderInChunks(offsets:number[], offsetArcIds:number[]){
     let currentArc = 0,
-      currenVectors:number[] = [],
+      currentVectors:number[] = [],
       currentArcIndexes:number[] = []
       
       for (let i = 0; i < offsets.length; i += 2) {
         //try to group arcs by 100
         if (currentArcIndexes.length > 199 && currentArc !== offsetArcIds[Math.floor((i + 1) / 2)]){
-          console.log({currenVectors, currentArcIndexes})
-          this.updateOffsets(currenVectors, currentArcIndexes)
+          console.log({currentVectors, currentArcIndexes})
+          this.updateOffsets(currentVectors, currentArcIndexes)
           this.keepOpen = true
           await this.render()
           this.keepOpen = false
-          currenVectors = []
+          currentVectors = []
           currentArcIndexes = []
         }
         currentArc = offsetArcIds[Math.floor((i + 1) / 2)]
         // console.log(`on loop ${i} pushing `, offsets[i], offsets[i + 1])
-        currenVectors.push(offsets[i], offsets[i + 1])
+        currentVectors.push(offsets[i], offsets[i + 1])
         currentArcIndexes.push(offsetArcIds[Math.floor((i + 1) / 2)])
       }
       if (currentArcIndexes.length > 0){
-        // console.log("there are leftovers ", {currenVectors, currentArcIndexes})
-        this.updateOffsets(currenVectors, currentArcIndexes)
+        console.log("there are leftovers ", {currentVectors, currentArcIndexes})
+        this.updateOffsets(currentVectors, currentArcIndexes)
         this.render()
       }
 

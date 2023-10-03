@@ -10,10 +10,11 @@ let textureWidth = 0;
 let textureHeight = 0;
 let chunk = 0;
 let chunkColors = ['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99','#b15928']
-let celarPrev = true
 let backgroundRadius = 0;
 let shapeRenderer = renderShapes()
 let data:Datum[] = []
+let arcIndexs:number[] = []
+let dataIds:string[] = []
 
 const DOMImplementation = xmldom.DOMImplementation;
 let dom: Document = new DOMImplementation().createDocument()
@@ -28,7 +29,8 @@ self.addEventListener("message", (eve) => {
     offsetArcIds,
     textureW,
     textureH,
-    radius
+    radius,
+    ids
   }: {
     canvas: OffscreenCanvas;
     computeCanvas: OffscreenCanvas;
@@ -38,7 +40,8 @@ self.addEventListener("message", (eve) => {
     textureW: number;
     textureH: number;
     radius: number;
-    type: "init" | "update_stencil" | "update_offsets" | "render" | "render_in_chunks" | "draw";
+    ids: string[];
+    type: "init" | "update_stencil" | "update_offsets" | "render" | "render_in_chunks" | "draw" | "update_ids";
   } = eve.data;
   switch (type) {
     case "init": {
@@ -76,6 +79,7 @@ self.addEventListener("message", (eve) => {
     case "render_in_chunks":
       {
         if (offsets && offsetArcIds && vornoi){
+          arcIndexs = offsetArcIds;
           chunk = 0
           vornoi.renderInChunks(offsets, offsetArcIds)
         }
@@ -85,6 +89,12 @@ self.addEventListener("message", (eve) => {
       if (offsets) handlePositions({payload:new Float32Array(offsets), keepOpen:false})
     }
     break;
+    case "update_ids":{
+      if (ids){
+        console.log('ids ', ids)
+        dataIds = ids;
+      }
+    }
     case "render":
       {
         if (vornoi) vornoi.render();
@@ -94,13 +104,19 @@ self.addEventListener("message", (eve) => {
 });
 
 function handlePositions({payload, keepOpen}:{payload:Float32Array, keepOpen:boolean}) {
+  console.log({payload, keepOpen, chunk})
   for (let i = 0; i < payload.length; i += 2) {
-    const d:Datum = {id:`${Math.floor((i + 1) / 2)}`, x:payload[i], y:payload[i + 1], colorValue:'bob', shapeValue:'bob'}
+    /* 
+     * ids are sorted and positions are sorted, before they are sent to the shape worker. This has the effect of presisting ids
+    */
+    const d:Datum = {id:dataIds[Math.floor((i + 1) / 2)] + chunk, x:payload[i], y:payload[i + 1], colorValue:'bob', shapeValue:'bob'}
     data.push(d)
   }
+  chunk++;
   if (!keepOpen){
     shapeRenderer.data(data)
     data = []
+    chunk = 0;
   }
 }
 
@@ -124,25 +140,6 @@ function draw() {
   })
   ctx.globalAlpha = 1;
   ctx.restore()
-  // if (ctx) {
-  //   
-  //   if (celarPrev) ctx.clearRect(0, 0, 1280 * 2, 720 * 2);
-  //   for (let i = 0; i < points.length; i += 2) {
-  //     ctx.setTransform(2,0, 0, 2,(points[i] * backgroundRadius) + 1280 , -(points[i + 1]  * backgroundRadius) + 720)
-  //     ctx.lineWidth = .75;
-  //     ctx.beginPath();
-  //     ctx.arc(0, 0, 5, 0, 2 * Math.PI);
-  //     ctx.stroke();
-  //     ctx.fillStyle = chunkColors[chunk % chunkColors.length]
-  //     ctx.fill()
-  //     ctx.fillStyle = "black"
-  //     ctx.font = `bold 8px Helvetica, Helvetica, arial, sans-serif`
-  //     ctx.fillText(`${Math.floor((i + 1)/2)}`, 0, 0)
-  //   }
-  //   chunk++
-  //   celarPrev = !keepOpen
-  //   ctx.restore()
-  // }
 }
 
 function init(canvas: OffscreenCanvas) {

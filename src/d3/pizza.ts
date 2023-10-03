@@ -2,6 +2,7 @@ import { select } from "d3-selection";
 import { pie } from "d3-shape";
 import colorPallet from "../static/colorPallet";
 import deepEqual from "deep-equal";
+import {dummyValue} from "../static/initialState";
 
 
 function pizzaChart(): typeof chart {
@@ -133,10 +134,10 @@ function pizzaChart(): typeof chart {
             // shapesWorker.postMessage({ type: 'set_ctx', canvas: offscreen2 }, [offscreen2!])
             // shapesWorker.postMessage({ type: 'set_dimensions', w: canvasWidth, h: canvasHeight, r: dpi })
             backgroundWorker.addEventListener('message', e => {
-                const { sectionVerts, sectionCoords} = e.data
+                const { sectionVerts, sectionCoords}:{sectionVerts:number[], sectionCoords:[number, number, number][]} = e.data
                 // console.log({ sectionVerts, sectionCoords})
                 if (sectionVerts && !deepEqual(sectionVerts, currentSectionVerts)) {
-                    currentSectionVerts = sectionVerts
+                    // currentSectionVerts = sectionVerts
                     /** this is intended to be an array of vec3s of the form (x, y, arc_id) */
                     const vertices:number[] = []
                     for (let i = 0; i < sectionVerts.length; i += 3){
@@ -148,13 +149,17 @@ function pizzaChart(): typeof chart {
                 }
                 if (sectionCoords && !deepEqual(sectionCoords, currentSectionCoords)) {
                     // console.log(sectionCoords,currentSectionCoords)
-                    currentSectionCoords = sectionCoords
+                    // currentSectionCoords = sectionCoordsa
                     let offsets:number[] = [];
                     let offsetArcIds:number[] = [];
-                    for (let i = 0; i < sectionCoords.length; i += 3) {     
+                    sectionCoords.sort((a,b) => cmp(a[2], b[2]) || cmp(a[0], b[0]) || cmp(a[1], b[1]))
+                    const sortedIds:string[] = data.sort((a, b) => cmp(sliceSet.indexOf(sliceValue(a)), sliceSet.indexOf(sliceValue(b))) || cmp(ringSet.indexOf(ringValue(a)), ringSet.indexOf(ringValue(b)))).map(d => d[`${dummyValue}_id`])
+                    shapeWorker.postMessage({type:"update_ids", ids:sortedIds})
+                    for (let i = 0; i < sectionCoords.length; ++i) {  
+                        const coord = sectionCoords[i]   
                         // offsets.push((sectionCoords[i] * (720/1280) * dpi)/textureW, -(sectionCoords[i + 1] * (720/1280) * dpi) / textureH)
-                        offsets.push((sectionCoords[i]/pieDiameter) * 2, -(sectionCoords[i + 1]/pieDiameter * 2))
-                        offsetArcIds.push(sectionCoords[i + 2])
+                        offsets.push((coord[0]/pieDiameter) * 2, -(coord[1]/pieDiameter * 2))
+                        offsetArcIds.push(coord[2])
                     }
                     console.log({offsets})
                     // for (let i = 0; i < sectionCoords.length; i += 3) {     
@@ -208,13 +213,14 @@ function pizzaChart(): typeof chart {
                         arcCount[`_${slice}_${ring}`] = data.filter(d => d[sliceKey] === slice && d[ringKey] === ring).length
                     }
                 }
-                console.log("arc count: ", arcCount)
                 backgroundWorker.postMessage({type:"update_arc_count", arcCount})
                 if (!deepEqual(updateSliceCount, sliceCount)) {
+                    console.log('calling update slice angles')
                     sliceCount = updateSliceCount
                     updateSliceAngles()
                 }
                 if (!deepEqual(updateRingCount, ringCount)) {
+                    console.log("calling update ring heights")
                     ringCount = updateRingCount
                     updateRingHeights()
                 }
@@ -306,6 +312,11 @@ function pizzaChart(): typeof chart {
                     ringSet,
                     ringHeights
                 })
+            }
+            function cmp(a:number, b:number) {
+                if (a > b) return +1;
+                if (a < b) return -1;
+                return 0;
             }
             //boot
             updateData()

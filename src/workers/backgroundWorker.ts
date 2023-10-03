@@ -204,7 +204,7 @@ class worker {
 
     getPathPoints() {
         const { generator} = this
-        const sectionCoords: number[] = []
+        const sectionCoords: [number, number, number][] = []
         const sectionVerts: number[] = []
         const arcs = this.generateArcs() //<--NOTE: destrcutring the method from "this" causes an error. look into that
         const {idSet, arcCount} = this
@@ -237,13 +237,13 @@ class worker {
                 const { startAngle, endAngle, innerRadius, outerRadius, id } = d
                 const centroid = arc().centroid({startAngle, endAngle, innerRadius, outerRadius})
                 // const centroid = [Math.round(x), Math.round(y)]
-                console.log({arcCount, id:d.id})
+                // console.log({arcCount, id:d.id})
                 for (let i = 0; i < arcCount[d.id]; ++i) {
                         const randomClampedR = Math.random() * (outerRadius - innerRadius) + innerRadius,
                             randomClampedTheta = (Math.random() * (endAngle - startAngle) + startAngle) - Math.PI / 2,
                             x = Math.cos(randomClampedTheta) * randomClampedR,
                             y = Math.sin(randomClampedTheta) * randomClampedR
-                        sectionCoords.push(x, y, idIndex)
+                        sectionCoords.push([x, y, idIndex])
                         // const jitterX = Math.random()
                         // const jitterY = Math.random()
                         // sectionCoords.push(centroid[0] + jitterX, centroid[1] + jitterY, idIndex)
