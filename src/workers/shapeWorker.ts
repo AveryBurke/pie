@@ -2,8 +2,9 @@ import VornoiMesh from "../static/lloydClass";
 import xmldom from "../domparser_bundle";
 import renderShapes from "../d3/rednerShapes";
 import shapes from "../static/shapes";
-import { select } from "d3-selection";
-import { interpolate } from "d3-interpolate";
+// import { select } from "d3-selection";// gh-pages can't find this
+import {select} from "d3";
+// import { interpolate } from "d3-interpolate";
 let vornoi: InstanceType<typeof VornoiMesh>;
 let ctx: OffscreenCanvasRenderingContext2D;
 let textureWidth = 0;
