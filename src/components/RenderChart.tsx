@@ -3,6 +3,7 @@ import React, { useRef, useLayoutEffect, useEffect, useState, useContext } from 
 import { SidebarContext } from "../contexts/SidebarContex";
 import colorPallet from "../static/colorPallet";
 import { GenericContext } from "../contexts/Context";
+import { AsynContext } from "../contexts/GpuContext";
 import useParameterUpdates from "../hooks/useParameterUpdates";
 import useFilterUpdates from "../hooks/useFilterUpdates";
 

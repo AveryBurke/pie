@@ -2,12 +2,13 @@ import { select } from "d3-selection";
 import { pie } from "d3-shape";
 import colorPallet from "../static/colorPallet";
 import deepEqual from "deep-equal";
-import lloyd from "../static/lloydModule";
+import {dummyValue} from "../static/initialState";
+
 
 function pizzaChart(): typeof chart {
 
     // All options that should be accessible to caller
-    let data: any[],
+    let  data: any[],
 
         //slices
         sliceSet: string[],
@@ -22,6 +23,9 @@ function pizzaChart(): typeof chart {
         margin: Margin,
         canvasWidth: number,
         canvasHeight: number,
+
+        //webgpu
+        device: GPUDevice,
 
         //update handlers
         //values that the caller can change after the chart is inilized
@@ -46,8 +50,12 @@ function pizzaChart(): typeof chart {
                 pieRadius = pieDiameter / 2,
                 canvas = root.append('canvas'),
                 canvas2 = root.append('canvas'),
+                canvas3 = root.append('canvas'),
                 canvasNode = canvas.node(),
-                canvasNode2 = canvas2.node()
+                canvasNode2 = canvas2.node(),
+                canvasNode3 = canvas3.node(),
+                textureW = 312,
+                textureH = 312
 
             if (canvasNode) {
                 canvasNode.style.width = canvasWidth + "px";
@@ -58,16 +66,27 @@ function pizzaChart(): typeof chart {
                 canvasNode.height = Math.floor(canvasHeight * dpi);
                 canvasNode.id = "background"
             }
-
+            /** this canvas is only for the webgl2 context. it's only used for rendering when displaying debug textures */
             if (canvasNode2) {
                 canvasNode2.style.width = canvasWidth + "px";
                 canvasNode2.style.height = canvasHeight + "px";
                 canvasNode2.style.position = 'absolute'
-                canvasNode2.style.zIndex = "1"
+                canvasNode2.style.zIndex = "2"
                 canvasNode2.width = Math.floor(canvasWidth * dpi);
                 canvasNode2.height = Math.floor(canvasHeight * dpi);
-                canvasNode2.id = "shapes"
+                canvasNode2.id = "compute"
             }
+
+            if (canvasNode3) {
+                canvasNode3.style.width = canvasWidth + "px";
+                canvasNode3.style.height = canvasHeight + "px";
+                canvasNode3.style.position = 'absolute'
+                canvasNode3.style.zIndex = "1"
+                canvasNode3.width = Math.floor(canvasWidth * dpi);
+                canvasNode3.height = Math.floor(canvasHeight * dpi);
+                canvasNode3.id = "shapes"
+            }
+
 
             let ringValue = (d: any) => d[ringKey],
                 sliceValue = (d: any) => d[sliceKey],
@@ -95,42 +114,58 @@ function pizzaChart(): typeof chart {
                 sliceColorsShouldChange = false,
                 vornoiInitialized = false,
                 currentSectionVerts:{[id:string]:[number,number][]} = {},
-                currentSectionCoords:{[id:string]:[number,number][]} = {}
+                currentSectionCoords:{[id:string]:[number,number][]} = {},
+                currentIds:string[] = []
 
             const backgroundWorker = new Worker(new URL("../workers/backgroundWorker", import.meta.url), { type: 'module' })
-            const shapesWorker = new Worker(new URL("../workers/shapesWorker", import.meta.url), { type: 'module' })
+            // const shapesWorker = new Worker(new URL("../workers/shapesWorker", import.meta.url), { type: 'module' })
+            const shapeWorker = new Worker(new URL("../workers/shapeWorker", import.meta.url), { type: 'module' })
             const offscreen = canvasNode?.transferControlToOffscreen()
             const offscreen2 = canvasNode2?.transferControlToOffscreen()
-            // const voroni = lloyd()
-
+            const offscreen3 = canvasNode3?.transferControlToOffscreen()
+            // const gl = offscreen2!.getContext("webgl2")
+            // if (gl!.getExtension("EXT_color_buffer_float")) {
+            //     console.log("voroni error: color extention does not exist");
+            //   }
             backgroundWorker.postMessage({ type: 'set_ctx', canvas: offscreen }, [offscreen!])
             backgroundWorker.postMessage({ type: 'set_dimensions', w: canvasWidth, h: canvasHeight, r: dpi })
             backgroundWorker.postMessage({ type: 'init_chart', sliceSet, sliceAngles, ringSet, ringHeights, sliceColors })
-            shapesWorker.postMessage({ type: 'set_ctx', canvas: offscreen2 }, [offscreen2!])
-            shapesWorker.postMessage({ type: 'set_dimensions', w: canvasWidth, h: canvasHeight, r: dpi })
+            shapeWorker.postMessage({type: "init", computeCanvas:offscreen2, canvas:offscreen3, textureW, textureH, radius:pieDiameter},[offscreen2!, offscreen3!])
+            
+            // shapesWorker.postMessage({ type: 'set_ctx', canvas: offscreen2 }, [offscreen2!])
+            // shapesWorker.postMessage({ type: 'set_dimensions', w: canvasWidth, h: canvasHeight, r: dpi })
             backgroundWorker.addEventListener('message', e => {
-                const { sectionVerts, sectionCoords } = e.data
-                // console.log({ sectionVerts, sectionCoords })
+                const { sectionVerts, sectionCoords}:{sectionVerts:number[], sectionCoords:[number, number, number][]} = e.data
+                // console.log({ sectionVerts, sectionCoords})
                 if (sectionVerts && !deepEqual(sectionVerts, currentSectionVerts)) {
-                    currentSectionVerts = sectionVerts
-                    const boarder = Object.values(sectionVerts).flat().reduce<number[]>((acc, vert)=>{
-                        const [x, y]= vert as [number, number]
-                        //normalize to the texture sapce, becasue the coordinates are written directly into the textrue
-                        acc.push((x/1280 + 1)/2, (y/720 + 1)/2)
-                        return acc
-                    }, [])
-                    // voroni.boarder(boarder)
+                    // currentSectionVerts = sectionVerts
+                    /** this is intended to be an array of vec3s of the form (x, y, arc_id) */
+                    const vertices:number[] = []
+                    for (let i = 0; i < sectionVerts.length; i += 3){
+                        /**             x                       y                       arc_id */
+                        vertices.push((sectionVerts[i]/pieDiameter) * 2, (sectionVerts[i + 1]/pieDiameter * 2), sectionVerts[i + 2])
+                    }
+                    shapeWorker.postMessage({type:'update_stencil', stencil:vertices})
                 }
                 if (sectionCoords && !deepEqual(sectionCoords, currentSectionCoords)) {
                     // console.log(sectionCoords,currentSectionCoords)
-                    currentSectionCoords = sectionCoords
-                    const nuclei = Object.values(sectionCoords).flat().reduce<number[]>((acc, vert)=>{
-                        const [x, y]= vert as [number, number]
-                        //normalize to the texture sapce, becasue the coordinates are written directly into the textrue
-                        acc.push((x/1280 + 1)/2, (y/720 + 1)/2)
-                        return acc
-                    }, [])
-                    // voroni.nuclei(nuclei)
+                    // currentSectionCoords = sectionCoordsa
+                    let offsets:number[] = [];
+                    let offsetArcIds:number[] = [];
+                    sectionCoords.sort((a,b) => cmp(a[2], b[2]) || cmp(a[0], b[0]) || cmp(a[1], b[1]))
+                    const sortedIds:string[] = data.sort((a, b) => cmp(sliceSet.indexOf(sliceValue(a)), sliceSet.indexOf(sliceValue(b))) || cmp(ringSet.indexOf(ringValue(a)), ringSet.indexOf(ringValue(b)))).map(d => d[`${dummyValue}_id`])
+                    shapeWorker.postMessage({type:"update_ids", ids:sortedIds})
+                    for (let i = 0; i < sectionCoords.length; ++i) {  
+                        const coord = sectionCoords[i]   
+                        offsets.push((coord[0]/pieDiameter) * 2, -(coord[1]/pieDiameter * 2)) // I think pieDiameter is actually pie radius and so I have to mulitply by 2
+                        offsetArcIds.push(coord[2])
+                    }
+                    /** trying to prevent redundant calls to render **/
+                    if (!deepEqual(sortedIds,currentIds)){
+                        currentIds = sortedIds
+                        shapeWorker.postMessage({type:"render_in_chunks", offsets, offsetArcIds})
+                    }
+                    
                 }
                 // if (!vornoiInitialized) {
                 //     voroni
@@ -157,13 +192,25 @@ function pizzaChart(): typeof chart {
 
 
             updateData = function () {
+                currentIds = []
                 const updateSliceCount = Object.fromEntries(sliceSet.map(slice => [slice, data.filter(d => sliceValue(d) === slice).length]))
                 const updateRingCount = Object.fromEntries(ringSet.map(ring => [ring, data.filter(d => ringValue(d) === ring).length]))
+                const arcCount:{[arc_id:string]:number} = {}
+                for (let i = 0; i < sliceSet.length; i++) {
+                    const slice = sliceSet[i]
+                    for (let j = 0; j < ringSet.length; j++) {
+                        const ring = ringSet[j]
+                        arcCount[`_${slice}_${ring}`] = data.filter(d => d[sliceKey] === slice && d[ringKey] === ring).length
+                    }
+                }
+                backgroundWorker.postMessage({type:"update_arc_count", arcCount})
                 if (!deepEqual(updateSliceCount, sliceCount)) {
+                    console.log('calling update slice angles')
                     sliceCount = updateSliceCount
                     updateSliceAngles()
                 }
                 if (!deepEqual(updateRingCount, ringCount)) {
+                    console.log("calling update ring heights")
                     ringCount = updateRingCount
                     updateRingHeights()
                 }
@@ -178,6 +225,16 @@ function pizzaChart(): typeof chart {
             }
 
             updateSliceSet = function () {
+                currentIds = []
+                const arcCount:{[arc_id:string]:number} = {}
+                for (let i = 0; i < sliceSet.length; i++) {
+                    const slice = sliceSet[i]
+                    for (let j = 0; j < ringSet.length; j++) {
+                        const ring = ringSet[j]
+                        arcCount[`_${slice}_${ring}`] = data.filter(d => d[sliceKey] === slice && d[ringKey] === ring).length
+                    }
+                }
+                backgroundWorker.postMessage({type:"update_arc_count", arcCount})
                 if (sliceColorsShouldChange) {
                     updateSliceColors()
                     sliceColorsShouldChange = false
@@ -191,10 +248,19 @@ function pizzaChart(): typeof chart {
                 backgroundWorker.postMessage({
                     type: 'remove_rings'
                 })
-
             }
 
             updateRingSet = function () {
+                currentIds = []
+                const arcCount:{[arc_id:string]:number} = {}
+                for (let i = 0; i < sliceSet.length; i++) {
+                    const slice = sliceSet[i]
+                    for (let j = 0; j < ringSet.length; j++) {
+                        const ring = ringSet[j]
+                        arcCount[`_${slice}_${ring}`] = data.filter(d => d[sliceKey] === slice && d[ringKey] === ring).length
+                    }
+                }
+                backgroundWorker.postMessage({type:"update_arc_count", arcCount})
                 ringCount = Object.fromEntries(ringSet.map(ring => [ring, data.filter(d => ringValue(d) === ring).length]))
                 updateRingHeights()
             }
@@ -238,6 +304,11 @@ function pizzaChart(): typeof chart {
                     ringSet,
                     ringHeights
                 })
+            }
+            function cmp(a:number, b:number) {
+                if (a > b) return +1;
+                if (a < b) return -1;
+                return 0;
             }
             //boot
             updateData()
@@ -284,6 +355,7 @@ function pizzaChart(): typeof chart {
         if (typeof updateRingSet === 'function') updateRingSet();
         return chart;
     };
+    
 
     //measurements
     chart.margin = function (value: Margin) {

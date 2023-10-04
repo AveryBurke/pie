@@ -5,6 +5,7 @@ import { Queue } from '../static/queue'
 import renderBackground from "../d3/renderBackground"
 import { svgPathProperties } from "svg-path-properties"
 import earcut from "earcut";
+import IndexedSet from "../static/indexedSet";
 // @ts-ignore
 import xmldom from "../domparser_bundle";
 
@@ -27,6 +28,9 @@ class worker {
     sliceColors: { [slice: string]: string[] } = {}
     path = arc()({ innerRadius: 50, outerRadius: 300, startAngle: 0, endAngle: 97 * Math.PI / 180 })
     poly = [10, 0, 0, 50, 60, 60, 70, 10]
+    arcCount: { [arc_id:string] : number } = {}
+    /** assigne an int to each id, for conding ids a texture */
+    idSet = new IndexedSet()
     setContext(ctx: OffscreenCanvasRenderingContext2D) {
         this.ctx = ctx
     }
@@ -37,8 +41,12 @@ class worker {
         this.ratio = r
     }
 
+    updateArcCount(arcCount: { [arc_id:string]: number }){
+        this.arcCount = arcCount;
+    }
+
     draw() {
-        const { ctx, canvasWidth, canvasHeight, ratio, path, poly } = this
+        const { ctx, canvasWidth, canvasHeight, ratio } = this
         if (ctx) {
             ctx.save();
             ctx.clearRect(0, 0, Math.floor(canvasWidth * ratio), Math.floor(canvasHeight * ratio));
@@ -59,15 +67,15 @@ class worker {
                 }
             })
             ctx.globalAlpha = 1
-            ctx.stroke()
+
             ctx.restore()
         }
     }
 
 
 
-
-    generateArcs() {
+    /** "add" and "remove" are only for the id set. there is no penalty for duplicate adds*/
+    generateArcs(state:"add" | "remove" = "add") {
         const { ringSet, ringHeights, sliceSet, sliceColors, sliceAngles } = this
         return sliceSet.reduce<Section[]>((acc, slice) => {
             if (sliceAngles[slice]) {
@@ -76,11 +84,13 @@ class worker {
                     if (ringHeights[ring]) {
                         const { innerRadius, outerRadius } = ringHeights[ring]!
                         const id = `_${slice}_${ring}`
+                        if (state === 'add') this.idSet.insert(id)
+                        if (state === 'remove') this.idSet.remove(id)
                         const slicePallet = sliceColors[slice]!
                         const fill = slicePallet[j % slicePallet.length]!
                         const arc = { id, innerRadius, outerRadius, startAngle, endAngle, fill }
-                        const border = { id: id + '_border', innerRadius: innerRadius + 5, outerRadius: outerRadius - 5, startAngle: startAngle + 5 * Math.PI / 180, endAngle: endAngle - 5 * Math.PI / 180, fill: 'black' }
-                        acc = [...acc, arc, border]
+                        // const border = { id: id + '_border', innerRadius: innerRadius + 5, outerRadius: outerRadius - 5, startAngle: startAngle + 5 * Math.PI / 180, endAngle: endAngle - 5 * Math.PI / 180, fill: 'black' }
+                        acc = [...acc, arc]
                     }
                     return acc
                 }, [])
@@ -103,6 +113,7 @@ class worker {
             return ringSet.map((ring, j) => {
                 const { innerRadius, outerRadius } = ringHeights[ring]!
                 const id = `_${slice}_${ring}`
+                this.idSet.insert(id)
                 const slicePallet = sliceColors[slice]!
                 const fill = slicePallet[j % slicePallet.length]!
                 return { id, innerRadius, outerRadius, startAngle, endAngle, fill }
@@ -140,7 +151,6 @@ class worker {
         const endSlices: QueueTask = { type: "sections", input: this.generateArcs() }
         this.background.enqueue(endSlices)
         this.background.dequeue()
-        // this.getPathPoints()
     }
 
     removeSlices() {
@@ -148,7 +158,7 @@ class worker {
         const { sliceSet } = this
         const outGointSliceAngles = Object.fromEntries(sliceSet.map(slice => [slice, { startAngle: 2 * Math.PI, endAngle: 2 * Math.PI }]))
         this.sliceAngles = outGointSliceAngles
-        const leavingArcs: QueueTask = { type: "sections", input: this.generateArcs() }
+        const leavingArcs: QueueTask = { type: "sections", input: this.generateArcs("remove") }
         this.background.enqueue({ type: 'duration', input: 400 })
         this.background.enqueue(leavingArcs)
         this.sliceSet = []
@@ -183,7 +193,7 @@ class worker {
         ringSet.forEach((ring, i) => {
             const { outerRadius } = this.ringHeights[ring]!
             this.ringHeights[ring] = { innerRadius: outerRadius, outerRadius }
-            const arcsWIthRing = this.generateArcs()
+            const arcsWIthRing = this.generateArcs("remove")
             this.background.enqueue({ type: 'sections', input: arcsWIthRing })
             this.ringSet = ringSet.slice(i)
             delete this.ringHeights[ring]
@@ -192,13 +202,13 @@ class worker {
     }
 
     getPathPoints() {
-        const { generator } = this
-        const sectionCoords: { [id: string]: [number, number][] } = {}
-        const sectionVerts: { [id: string]: [number, number][] } = {}
+        const { generator} = this
+        const sectionCoords: [number, number, number][] = []
+        const sectionVerts: number[] = []
         const arcs = this.generateArcs() //<--NOTE: destrcutring the method from "this" causes an error. look into that
+        const {idSet, arcCount} = this
         arcs.forEach(function (d, i) {
-            if (d.id.includes('_border')) {
-                // triangulate the boarder polygon
+                // triangulate the polygon
                 const path = generator(d) || "",
                     num_points = 100,
                     points: number[] = [],
@@ -209,30 +219,36 @@ class worker {
                     points.push(x)
                     points.push(y)
                 }
-                const ears = earcut(points),//<--returns the indexes of x coordinates of the triangle vertices in the points array
+                const idIndex = idSet.getIndex(d.id)
+                const ears = earcut(points)//<--returns the indexes of x coordinates of the triangle vertices in the points array
                     //fetch the coordiantes of the triangle vertices from the points array
-                    vertices = ears.reduce<[number, number][]>((acc, index) => {
-                        const i = index * 2
-                        return [...acc, [points[i]!, points[i + 1]!]]
-                    }, [])
-                sectionVerts[d.id] = vertices
+                    for (let i = 0; i < ears.length; i++) {
+                        const index = ears[i] * 2
+                        sectionVerts.push(points[index], points[index + 1], idIndex);
+                    }
+                //     vertices = ears.reduce<[number, number, number][]>((acc, index) => {
+                //         const i = index * 2
+                //         return [...acc, [points[i]!, points[i + 1]!, idIndex]]
+                //     }, [])
+                // sectionVerts[d.id] = vertices
 
-                //seed the positions within the boarder polygon
-                const coords: [number, number][] = []
-                for (let i = 0; i < 200; ++i) {
-                    const { startAngle, endAngle, innerRadius, outerRadius, id } = d
-                    if (id.includes('_border')) {
+                //seed the positions within the polygon
+                const { startAngle, endAngle, innerRadius, outerRadius, id } = d
+                // const centroid = arc().centroid({startAngle, endAngle, innerRadius, outerRadius})
+                // const centroid = [Math.round(x), Math.round(y)]
+                // console.log({arcCount, id:d.id})
+                for (let i = 0; i < arcCount[d.id]; ++i) {
                         const randomClampedR = Math.random() * (outerRadius - innerRadius) + innerRadius,
                             randomClampedTheta = (Math.random() * (endAngle - startAngle) + startAngle) - Math.PI / 2,
                             x = Math.cos(randomClampedTheta) * randomClampedR,
                             y = Math.sin(randomClampedTheta) * randomClampedR
-                        coords.push([x, y])
-                    }
+                        sectionCoords.push([x, y, idIndex])
+                        // const jitterX = Math.random()
+                        // const jitterY = Math.random()
+                        // sectionCoords.push(centroid[0] + jitterX, centroid[1] + jitterY, idIndex)
                 }
-                sectionCoords[d.id] = coords
-            }
         })
-        self.postMessage({ sectionVerts, sectionCoords })
+        self.postMessage({ sectionVerts, sectionCoords})
     }
 }
 
@@ -249,7 +265,8 @@ self.addEventListener('message', msg => {
         ringHeights,
         sliceSet,
         sliceAngles,
-        sliceColors
+        sliceColors,
+        arcCount
     }:
         {
             type: string,
@@ -262,8 +279,8 @@ self.addEventListener('message', msg => {
             ringHeights?: { [ring: string]: { innerRadius: number, outerRadius: number } }
             sliceAngles?: { [slice: string]: { startAngle: number, endAngle: number } }
             sliceColors?: { [slice: string]: string[] }
+            arcCount?:  { [arc_id:string]: number }
         } = msg.data
-        
     if (type === 'set_ctx' && canvas) {
         const ctx = canvas.getContext('2d')
         brw.setContext(ctx!)
@@ -282,6 +299,9 @@ self.addEventListener('message', msg => {
     }
     if (type === 'remove_rings') {
         brw.removeRings()
+    }
+    if (type === "update_arc_count" && arcCount){
+        brw.updateArcCount(arcCount)
     }
     if (type === 'remove_slices') {
         brw.removeSlices()

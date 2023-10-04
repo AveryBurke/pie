@@ -29,6 +29,8 @@ declare type Arc = {
     theta?: number;
 }
 
+type Datum = {id:string, x:number, y:number, colorValue:string, shapeValue:string}
+
 declare type Margin = {
     top: number,
     right: number,
@@ -37,6 +39,8 @@ declare type Margin = {
 }
 
 declare type UpdateHandler = () => void
+
+declare type SymbolName = "circle" |  "triangle" | "square" | "diamond" | "star" | "wye" | "cross"
 
 declare type Msg = 'duration' | 'sections'
 
