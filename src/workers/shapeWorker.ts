@@ -3,7 +3,7 @@ import xmldom from "../domparser_bundle";
 import renderShapes from "../d3/rednerShapes";
 import shapes from "../static/shapes";
 // import { select } from "d3-selection";// gh-pages can't find this
-import {select} from "d3";
+import * as d3 from "d3";
 // import { interpolate } from "d3-interpolate";
 let vornoi: InstanceType<typeof VornoiMesh>;
 let ctx: OffscreenCanvasRenderingContext2D;
@@ -57,10 +57,10 @@ self.addEventListener("message", (eve) => {
       shapeRenderer.shapeSet([shapes('circle', 5)])
       shapeRenderer.shapeValues({"bob":shapes('circle', 5)})
       shapeRenderer.drawShapes(() => draw())
-      console.log({select:select})
+      console.log({d3})
       console.log({dom})
       console.log({shapeRenderer})
-      select(dom).call(shapeRenderer)
+      d3.select(dom).call(shapeRenderer)
     }
     break;
     case "update_stencil":
@@ -125,11 +125,11 @@ function handlePositions({payload, keepOpen}:{payload:Float32Array, keepOpen:boo
 }
 
 function draw() {
-  const elements = select(dom).selectAll<HTMLElement, any>(`custom.shape`)
+  const elements = d3.select(dom).selectAll<HTMLElement, any>(`custom.shape`)
   ctx.save();
   ctx.clearRect(0, 0, 1280 * 2, 720 * 2);
   elements.each(function () {
-    const node = select<HTMLElement, Datum>(this).select('path'),
+    const node = d3.select<HTMLElement, Datum>(this).select('path'),
                 xCoord = +node.attr('x'),
                 yCoord = +node.attr('y'),
                 fill = node.attr('fill')
