@@ -2,7 +2,7 @@ import VornoiMesh from "../static/lloydClass";
 import xmldom from "../domparser_bundle";
 import renderShapes from "../d3/rednerShapes";
 import shapes from "../static/shapes";
-// import { select } from "d3-selection";// gh-pages can't find this
+// import { select } from "d3-selection";// gh-pages can't find this, so I have to import all of d3
 import * as d3 from "d3";
 // import { interpolate } from "d3-interpolate";
 let vornoi: InstanceType<typeof VornoiMesh>;
@@ -57,9 +57,6 @@ self.addEventListener("message", (eve) => {
       shapeRenderer.shapeSet([shapes('circle', 5)])
       shapeRenderer.shapeValues({"bob":shapes('circle', 5)})
       shapeRenderer.drawShapes(() => draw())
-      console.log({d3})
-      console.log({dom})
-      console.log({shapeRenderer})
       d3.select(dom).call(shapeRenderer)
     }
     break;
