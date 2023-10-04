@@ -8,7 +8,7 @@ import {dummyValue} from "../static/initialState";
 function pizzaChart(): typeof chart {
 
     // All options that should be accessible to caller
-    let data: any[],
+    let  data: any[],
 
         //slices
         sliceSet: string[],
@@ -114,7 +114,8 @@ function pizzaChart(): typeof chart {
                 sliceColorsShouldChange = false,
                 vornoiInitialized = false,
                 currentSectionVerts:{[id:string]:[number,number][]} = {},
-                currentSectionCoords:{[id:string]:[number,number][]} = {}
+                currentSectionCoords:{[id:string]:[number,number][]} = {},
+                currentIds:string[] = []
 
             const backgroundWorker = new Worker(new URL("../workers/backgroundWorker", import.meta.url), { type: 'module' })
             // const shapesWorker = new Worker(new URL("../workers/shapesWorker", import.meta.url), { type: 'module' })
@@ -141,8 +142,7 @@ function pizzaChart(): typeof chart {
                     /** this is intended to be an array of vec3s of the form (x, y, arc_id) */
                     const vertices:number[] = []
                     for (let i = 0; i < sectionVerts.length; i += 3){
-                        /**             x                                    y                      id */
-                        // vertices.push((sectionVerts[i] * (720/1280)) / textureW, (sectionVerts[i + 1] * (720/1280)), sectionVerts[i + 2])
+                        /**             x                       y                       arc_id */
                         vertices.push((sectionVerts[i]/pieDiameter) * 2, (sectionVerts[i + 1]/pieDiameter * 2), sectionVerts[i + 2])
                     }
                     shapeWorker.postMessage({type:'update_stencil', stencil:vertices})
@@ -157,26 +157,15 @@ function pizzaChart(): typeof chart {
                     shapeWorker.postMessage({type:"update_ids", ids:sortedIds})
                     for (let i = 0; i < sectionCoords.length; ++i) {  
                         const coord = sectionCoords[i]   
-                        // offsets.push((sectionCoords[i] * (720/1280) * dpi)/textureW, -(sectionCoords[i + 1] * (720/1280) * dpi) / textureH)
-                        offsets.push((coord[0]/pieDiameter) * 2, -(coord[1]/pieDiameter * 2))
+                        offsets.push((coord[0]/pieDiameter) * 2, -(coord[1]/pieDiameter * 2)) // I think pieDiameter is actually pie radius and so I have to mulitply by 2
                         offsetArcIds.push(coord[2])
                     }
-                    console.log({offsets})
-                    // for (let i = 0; i < sectionCoords.length; i += 3) {     
-                    //     offsets.push(sectionCoords[i], sectionCoords[i + 1])
-                    //     offsetArcIds.push(sectionCoords[i + 2])
-                    // }
-                    // shapeWorker.postMessage({type:"draw", offsets})
-
-                    // if (offsetArcIds.length > 100 && offsetArcIds[offsetArcIds.length - 1] > 0){
+                    /** trying to prevent redundant calls to render **/
+                    if (!deepEqual(sortedIds,currentIds)){
+                        currentIds = sortedIds
                         shapeWorker.postMessage({type:"render_in_chunks", offsets, offsetArcIds})
-                    // } else {
-                        // console.log('rendering')
-                        // shapeWorker.postMessage({type:"update_offsets", offsets, offsetArcIds})
-                        // shapeWorker.postMessage({type:"render"})
-                    // }
+                    }
                     
-                    // voroni.nuclei(nuclei)
                 }
                 // if (!vornoiInitialized) {
                 //     voroni
@@ -203,6 +192,7 @@ function pizzaChart(): typeof chart {
 
 
             updateData = function () {
+                currentIds = []
                 const updateSliceCount = Object.fromEntries(sliceSet.map(slice => [slice, data.filter(d => sliceValue(d) === slice).length]))
                 const updateRingCount = Object.fromEntries(ringSet.map(ring => [ring, data.filter(d => ringValue(d) === ring).length]))
                 const arcCount:{[arc_id:string]:number} = {}
@@ -235,6 +225,7 @@ function pizzaChart(): typeof chart {
             }
 
             updateSliceSet = function () {
+                currentIds = []
                 const arcCount:{[arc_id:string]:number} = {}
                 for (let i = 0; i < sliceSet.length; i++) {
                     const slice = sliceSet[i]
@@ -260,6 +251,7 @@ function pizzaChart(): typeof chart {
             }
 
             updateRingSet = function () {
+                currentIds = []
                 const arcCount:{[arc_id:string]:number} = {}
                 for (let i = 0; i < sliceSet.length; i++) {
                     const slice = sliceSet[i]

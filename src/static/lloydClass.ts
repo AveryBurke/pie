@@ -562,16 +562,18 @@ export default class VornoiMesh {
   }
 
   async renderInChunks(offsets:number[], offsetArcIds:number[]){
+    // console.log('rendering with offsets: ', offsets)
     let currentArc = 0,
       currentVectors:number[] = [],
       currentArcIndexes:number[] = []
       
       for (let i = 0; i < offsets.length; i += 2) {
-        //try to group arcs by 100
-        if (currentArcIndexes.length > 199 && currentArc !== offsetArcIds[Math.floor((i + 1) / 2)]){
-          console.log({currentVectors, currentArcIndexes})
+        //try to group arcs by 200
+        if (currentVectors.length > 400 && currentArc !== offsetArcIds[Math.floor((i + 1) / 2)]){
+          // console.log({currentVectors, currentArcIndexes})
           this.updateOffsets(currentVectors, currentArcIndexes)
           this.keepOpen = true
+          console.log('should send to render: ', {currentVectors, currentArcIndexes, keepOpen:this.keepOpen})
           await this.render()
           this.keepOpen = false
           currentVectors = []
@@ -583,7 +585,7 @@ export default class VornoiMesh {
         currentArcIndexes.push(offsetArcIds[Math.floor((i + 1) / 2)])
       }
       if (currentArcIndexes.length > 0){
-        console.log("there are leftovers ", {currentVectors, currentArcIndexes})
+        console.log("there are leftovers ", {currentVectors, currentArcIndexes, keepOpen:this.keepOpen})
         this.updateOffsets(currentVectors, currentArcIndexes)
         this.render()
       }

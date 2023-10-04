@@ -79,6 +79,7 @@ self.addEventListener("message", (eve) => {
     case "render_in_chunks":
       {
         if (offsets && offsetArcIds && vornoi){
+          console.log('sending render command with offsets: ', offsets)
           arcIndexs = offsetArcIds;
           chunk = 0
           vornoi.renderInChunks(offsets, offsetArcIds)
@@ -91,10 +92,10 @@ self.addEventListener("message", (eve) => {
     break;
     case "update_ids":{
       if (ids){
-        console.log('ids ', ids)
         dataIds = ids;
       }
     }
+    break;
     case "render":
       {
         if (vornoi) vornoi.render();

@@ -151,7 +151,6 @@ class worker {
         const endSlices: QueueTask = { type: "sections", input: this.generateArcs() }
         this.background.enqueue(endSlices)
         this.background.dequeue()
-        // this.getPathPoints()
     }
 
     removeSlices() {
@@ -235,7 +234,7 @@ class worker {
 
                 //seed the positions within the polygon
                 const { startAngle, endAngle, innerRadius, outerRadius, id } = d
-                const centroid = arc().centroid({startAngle, endAngle, innerRadius, outerRadius})
+                // const centroid = arc().centroid({startAngle, endAngle, innerRadius, outerRadius})
                 // const centroid = [Math.round(x), Math.round(y)]
                 // console.log({arcCount, id:d.id})
                 for (let i = 0; i < arcCount[d.id]; ++i) {
