@@ -57,7 +57,9 @@ self.addEventListener("message", (eve) => {
       shapeRenderer.shapeSet([shapes('circle', 5)])
       shapeRenderer.shapeValues({"bob":shapes('circle', 5)})
       shapeRenderer.drawShapes(() => draw())
-      console.log({select:select,dom,shapeRenderer})
+      console.log({select:select})
+      console.log({dom})
+      console.log({shapeRenderer})
       select(dom).call(shapeRenderer)
     }
     break;
