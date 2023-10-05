@@ -34,6 +34,18 @@ export default function stateReducer(state: State, action: Disparcth): State {
                 },
                 lastChange:{type,parameter:payload.parameter}
             }
+        case 'update_parameter_scale':
+            return {
+                ...state,
+                parameters:{
+                    ...state.parameters,
+                    [payload.parameter]:{
+                        ...state.parameters[payload.parameter],
+                        scale:payload.scale
+                    }
+                },
+                lastChange:{type,parameter:payload.parameter}
+            }
         case 'update_state':
             return payload
         case 'reset_parameter':

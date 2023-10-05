@@ -4,6 +4,7 @@ import Select from 'react-select'
 import { useSpring, animated } from 'react-spring'
 import { easings } from '@react-spring/web'
 import { dummyValue } from "../static/initialState";
+import { style } from "d3-selection";
 
 const SidebarComponentWrapper = ({
     currentKey,
@@ -22,6 +23,7 @@ const SidebarComponentWrapper = ({
     props: ComponenetPropsType
     handleChange: (input: string) => void
     handleReset: (input: void) => void
+    optionalDivs?:(input:any, key:string) => JSX.Element
 }) => {
 
     const [heightOn, setHeightOn] = useState(false);
@@ -46,7 +48,6 @@ const SidebarComponentWrapper = ({
         to: { height: contentHeight },
         onRest: () => (uiReady.current = true)
     })
-
 
     return (
         <div className="sidebar-component" key='contrainer' id={`${title}_sidebar-component`}>
@@ -100,8 +101,9 @@ const SidebarComponentWrapper = ({
             />
             <animated.div style={{ width: "100%", overflow: "hidden", ...heightStyles }}>
                 <div
-                    style={{ width: '100%' }}
-                    ref={activateRef}>
+                    style={{ width: '100%'}}
+                    ref={activateRef}
+                    >
                     <div hidden={currentKey.includes(dummyValue)}>
                         <ControlPanel {...props} />
                     </div>

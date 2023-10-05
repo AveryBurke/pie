@@ -4,6 +4,8 @@ import GenerateData from "../components/GenerateData";
 import SidebarParameterComponent from "./SidebarParameterComponent";
 import SidebarFilterComponent from "./SidebarFilterComponent";
 
+const colorScaleGenerator = (scale:{[key:string]:string}) => (value:string,key:string) => <div key = {key} style={{width:"15px", height:"15px", justifySelf:'center', backgroundColor:scale[value]}}></div>
+
 const Sidebar = () => {
   const {sidebarState, setSidebarState} = useContext(SidebarContext)!
   const toggleSidebarState = () => {
@@ -18,6 +20,7 @@ const Sidebar = () => {
       <GenerateData />
       <SidebarParameterComponent parameter="slice"/>
       <SidebarParameterComponent parameter="ring"/>
+      <SidebarParameterComponent parameter="color" scaleGenerator={colorScaleGenerator}/>
       <SidebarFilterComponent />
     </div>
   )

@@ -12,6 +12,7 @@ const makeState = (numberOfRows:number): State => {
             [`${dummyValue}_ring_key`]: `${dummyValue}_ring_value`,
             [`${dummyValue}_slice_key`]: `${dummyValue}_slice_value`,
             [`${dummyValue}_filter_key`]: `${dummyValue}_filter_value`,
+            [`${dummyValue}_color_key`]: `${dummyValue}_color_value`,
             [`${dummyValue}_id`]: generateId(8),
             ...createUser()
         }

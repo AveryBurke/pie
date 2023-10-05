@@ -27,13 +27,17 @@ const useParameterUpdate = () => {
                 }
                     break;
                 case 'update_parameter_set': {
-                    passActionToChart(`update_chart_${parameter}_set`)
-                    const { data } = state
-                    const { set, key } = state.parameters[parameter!]
-                    const activeFilterValues = filterSet.filter(elem => !selected[elem])
-                    const filteredData = data.filter(d => activeFilterValues.includes(d[filterKey]))
-                    const counts = Object.fromEntries(set.map(elem => [elem, filteredData.filter(d => d[key] === elem).length]))
-
+                    if (parameter){
+                        passActionToChart(`update_chart_${parameter}_set`)
+                        const { data } = state
+                        const { set, key, pallet } = state.parameters[parameter!]
+                        const activeFilterValues = filterSet.filter(elem => !selected[elem])
+                        const filteredData = data.filter(d => activeFilterValues.includes(d[filterKey]))
+                        const counts = Object.fromEntries(set.map(elem => [elem, filteredData.filter(d => d[key] === elem).length]))
+                        const values = Object.values(pallet).flat()
+                        const scale:{[key:string]:string} = Object.fromEntries(set.map((value, i) => [value, values[i % values.length]]))
+                        dispatch({type:"update_parameter_scale", payload: { parameter, scale}})
+                    }
                 }
                     break
                 case 'update_data':
