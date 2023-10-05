@@ -5,7 +5,7 @@ const useChartUpdates = () => {
     const { refChart, state } = useContext(GenericContext)!
     const { filter } = useContext(FilterContext)!
     const {key:filterKey, set:filterSet, selected:selectedFilterValues } = filter
-    return function (action: string) {
+    return function (action: ChartAction) {
         switch (action) {
             case `update_chart_slice_set`:
                 refChart.sliceSet(state.parameters.slice.set)
@@ -19,6 +19,15 @@ const useChartUpdates = () => {
             case `update_chart_ring_set`:
                 refChart.ringSet(state.parameters.ring.set)
                 break
+            case `update_chart_color_key`:
+                refChart.colorKey(state.parameters.color.key)
+                break
+            case 'update_chart_color_set':
+                refChart.colorSet(state.parameters.color.set)
+                break
+            case 'update_chart_color_scale':
+                refChart.colorScale(state.parameters.color.scale)
+                break;
             case `update_chart_data`:
                 const activeFilterValues = filterSet.filter(f => selectedFilterValues[f])
                 const filteredData = state.data.filter(d => !activeFilterValues.includes(d[filterKey]))

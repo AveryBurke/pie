@@ -1,15 +1,18 @@
-declare type Chart = {
-    (selection: d3.Selection<HTMLDivElement, any, any, any>): void
-    data(value:any[]):Chart
-    sliceKey(value:string):Chart
-    sliceSet(value:string[]):Chart
-    sliceColors(value: {[slice:string]:string[]}):Chart
-    ringKey(value:string):Chart
-    ringSet(value:string[]):Chart
-    margin(value:Margin):Chart,
-    canvasWidth(value:number):Chart
-    canvasHeight(value:number):Chart
-} 
+// import type chart from "../src/d3/pizza";
+declare type Chart = ReturnType<typeof import("../src/d3/pizza").pizzaChart>
+
+// {
+//     (selection: d3.Selection<HTMLDivElement, any, any, any>): void
+//     data(value:any[]):Chart
+//     sliceKey(value:string):Chart
+//     sliceSet(value:string[]):Chart
+//     sliceColors(value: {[slice:string]:string[]}):Chart
+//     ringKey(value:string):Chart
+//     ringSet(value:string[]):Chart
+//     margin(value:Margin):Chart,
+//     canvasWidth(value:number):Chart
+//     canvasHeight(value:number):Chart
+// } 
 
 declare type Arc = {
     path: string;
@@ -51,7 +54,12 @@ declare type ActionType =
     'update_data' |
     'update_state' |
     'reset_parameter'
-    
+
+declare type ChartAction = 
+    `update_chart_${ParameterType}_key` | 
+    `update_chart_${ParameterType}_set` | 
+    `update_chart_${ParameterType}_scale` |
+    'update_chart_data'
 
 declare type FilterActionType = 
     'update_filter_key' | 

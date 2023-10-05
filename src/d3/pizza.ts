@@ -19,6 +19,11 @@ function pizzaChart(): typeof chart {
         ringSet: string[],
         ringKey: string,
 
+        //colors
+        colorKey: string,
+        colorSet: string[],
+        colorScale: {[key:string]:string},
+
         //chart dimensions
         margin: Margin,
         canvasWidth: number,
@@ -33,7 +38,10 @@ function pizzaChart(): typeof chart {
         updateSliceKey: UpdateHandler,
         updateSliceSet: UpdateHandler,
         updateRingKey: UpdateHandler,
-        updateRingSet: UpdateHandler
+        updateRingSet: UpdateHandler,
+        updateColorKey: UpdateHandler,
+        updateColorSet: UpdateHandler,
+        updateColorScale: UpdateHandler
 
 
     function chart(selection: d3.Selection<HTMLDivElement, any, any, any>) {
@@ -90,6 +98,7 @@ function pizzaChart(): typeof chart {
 
             let ringValue = (d: any) => d[ringKey],
                 sliceValue = (d: any) => d[sliceKey],
+                colorValue = (d: any) => d[colorKey],
                 ringCount = Object.fromEntries(ringSet.map(ring => [ring, data.filter(d => ringValue(d) === ring).length])),
                 sliceCount = Object.fromEntries(sliceSet.map(slice => [slice, data.filter(d => sliceValue(d) === slice).length])),
                 ringHeights = ringSet.reduce<{ [key: string]: { innerRadius: number, outerRadius: number } }>((acc, ring, i) => {
@@ -265,6 +274,22 @@ function pizzaChart(): typeof chart {
                 updateRingHeights()
             }
 
+            updateColorKey = function() {
+                //probably send this to the shape worker
+                colorValue = (d:any) => d[colorKey]
+                console.log({colorKey})
+            }
+
+            updateColorSet = function(){
+                //probably send this to the shape worker
+                console.log({colorSet})
+            }
+
+            updateColorScale = function(){
+                //probably send this to the shape worker
+                console.log({colorScale})
+            }
+
             // //helper functions
             function updateSliceColors() {
                 const previouslyUsed = Object.keys(sliceColors).length
@@ -355,7 +380,23 @@ function pizzaChart(): typeof chart {
         if (typeof updateRingSet === 'function') updateRingSet();
         return chart;
     };
-    
+
+    //colors
+    chart.colorKey = function (value: string) {
+        colorKey = value;
+        if (typeof updateColorKey === "function") updateColorKey();
+        return chart
+    }
+    chart.colorSet = function (value: string[]) {
+        colorSet = value;
+        if (typeof updateColorSet === "function") updateColorSet();
+        return chart
+    }
+    chart.colorScale = function (value: {[key:string]:string}) {
+        colorScale = value;
+        if (typeof updateColorScale === "function") updateColorScale();
+        return chart
+    }
 
     //measurements
     chart.margin = function (value: Margin) {
@@ -381,4 +422,4 @@ function pizzaChart(): typeof chart {
 
     return chart;
 }
-export default pizzaChart 
+export {pizzaChart}

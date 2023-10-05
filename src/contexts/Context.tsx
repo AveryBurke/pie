@@ -1,7 +1,7 @@
 import React, { useReducer, useEffect, useRef, } from "react";
 import stateReducer from "../reducers/stateReducer";
 import { initialState } from "../static/initialState";
-import pizzaChart from "../d3/pizza";
+import {pizzaChart} from "../d3/pizza";
 
 const GenericContext = React.createContext<Values | null>(null);
 

@@ -8,7 +8,7 @@ const useParameterUpdate = () => {
     const { state, dispatch } = useContext(GenericContext)!
     const { filter } = useContext(FilterContext)!
     const { set: filterSet, key: filterKey, selected } = filter
-    const passActionToChart = (action: string) => {
+    const passActionToChart = (action: ChartAction) => {
         if (updateChart) {
             updateChart(action)
         }
@@ -20,10 +20,12 @@ const useParameterUpdate = () => {
             switch (type) {
                 case `reset_parameter`:
                 case 'update_parameter_key': {
-                    const { key } = state.parameters[parameter!]
-                    const set = [...new Set(state.data.map(d => d[key]))]
-                    passActionToChart(`update_chart_${parameter}_key`)
-                    dispatch({ type: 'update_parameter_set', payload: { parameter: parameter!, set } })
+                    if (parameter){
+                        const { key } = state.parameters[parameter!]
+                        const set = [...new Set(state.data.map(d => d[key]))]
+                        passActionToChart(`update_chart_${parameter}_key`)
+                        dispatch({ type: 'update_parameter_set', payload: { parameter, set } })
+                    }
                 }
                     break;
                 case 'update_parameter_set': {
@@ -40,6 +42,12 @@ const useParameterUpdate = () => {
                     }
                 }
                     break
+                case 'update_parameter_scale':{
+                    if (parameter){
+                        passActionToChart(`update_chart_${parameter}_scale`)
+                    }
+                }
+                    break;
                 case 'update_data':
                     passActionToChart('update_chart_data')
                     break

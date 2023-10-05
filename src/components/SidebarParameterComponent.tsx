@@ -25,8 +25,6 @@ const SidebarParameterComponent = ({ parameter, scaleGenerator }: { parameter: P
     }
 
     const handleSort = (set: string[]) => {
-        // const scale = Object.fromEntries(set.map((value, i) => [value, values[i % values.length]]))
-        // dispatch({type:"update_parameter_scale", payload: { parameter, scale}})
         dispatch({ type: 'update_parameter_set', payload: { parameter, set } })
     }
 
@@ -48,7 +46,6 @@ const SidebarParameterComponent = ({ parameter, scaleGenerator }: { parameter: P
         setCounts(Object.fromEntries(set.map(elem => [elem, {currentCount:newCounts[elem], previousCount:counts[elem] ? counts[elem].currentCount : newCounts[elem]}])))
     }
     }, [filter, set])
-
     const optionalDivs = useCallback(() => {
         if (scaleGenerator){
             return scaleGenerator(scale)
