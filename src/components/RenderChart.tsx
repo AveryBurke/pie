@@ -31,7 +31,7 @@ const GenericChart = (): JSX.Element => {
     const [render, setRender] = useState(false)
     const { sidebarState } = useContext(SidebarContext)!
     const { state, refChart } = useContext(GenericContext)!
-    const { data, parameters: { ring, slice } } = state
+    const { data, parameters: { ring, slice, color } } = state
     const sliceColors = Object.fromEntries(slice.set.map((s, i) => [s, colorPallet[i % colorPallet.length]!]))
 
     useParameterUpdates()
@@ -48,6 +48,9 @@ const GenericChart = (): JSX.Element => {
             refChart.sliceColors(sliceColors)
             if (ring.key) refChart.ringKey(ring.key)
             if (ring.set) refChart.ringSet(ring.set)
+            if (color.key) refChart.colorKey(color.key)
+            if (color.set) refChart.colorSet(color.set)
+            if (color.scale) refChart.colorScale(color.scale)
         }
 
         //inilzie the chart

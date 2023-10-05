@@ -573,7 +573,7 @@ export default class VornoiMesh {
           // console.log({currentVectors, currentArcIndexes})
           this.updateOffsets(currentVectors, currentArcIndexes)
           this.keepOpen = true
-          console.log('should send to render: ', {currentVectors, currentArcIndexes, keepOpen:this.keepOpen})
+          // console.log('should send to render: ', {currentVectors, currentArcIndexes, keepOpen:this.keepOpen})
           await this.render()
           this.keepOpen = false
           currentVectors = []
@@ -585,7 +585,7 @@ export default class VornoiMesh {
         currentArcIndexes.push(offsetArcIds[Math.floor((i + 1) / 2)])
       }
       if (currentArcIndexes.length > 0){
-        console.log("there are leftovers ", {currentVectors, currentArcIndexes, keepOpen:this.keepOpen})
+        // console.log("there are leftovers ", {currentVectors, currentArcIndexes, keepOpen:this.keepOpen})
         this.updateOffsets(currentVectors, currentArcIndexes)
         this.render()
       }

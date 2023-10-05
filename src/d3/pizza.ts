@@ -19,6 +19,11 @@ function pizzaChart(): typeof chart {
         ringSet: string[],
         ringKey: string,
 
+        //colors
+        colorKey: string,
+        colorSet: string[],
+        colorScale: {[key:string]:string},
+
         //chart dimensions
         margin: Margin,
         canvasWidth: number,
@@ -33,7 +38,10 @@ function pizzaChart(): typeof chart {
         updateSliceKey: UpdateHandler,
         updateSliceSet: UpdateHandler,
         updateRingKey: UpdateHandler,
-        updateRingSet: UpdateHandler
+        updateRingSet: UpdateHandler,
+        updateColorKey: UpdateHandler,
+        updateColorSet: UpdateHandler,
+        updateColorScale: UpdateHandler
 
 
     function chart(selection: d3.Selection<HTMLDivElement, any, any, any>) {
@@ -90,6 +98,7 @@ function pizzaChart(): typeof chart {
 
             let ringValue = (d: any) => d[ringKey],
                 sliceValue = (d: any) => d[sliceKey],
+                colorValue = (d: any) => d[colorKey],
                 ringCount = Object.fromEntries(ringSet.map(ring => [ring, data.filter(d => ringValue(d) === ring).length])),
                 sliceCount = Object.fromEntries(sliceSet.map(slice => [slice, data.filter(d => sliceValue(d) === slice).length])),
                 ringHeights = ringSet.reduce<{ [key: string]: { innerRadius: number, outerRadius: number } }>((acc, ring, i) => {
@@ -115,7 +124,7 @@ function pizzaChart(): typeof chart {
                 vornoiInitialized = false,
                 currentSectionVerts:{[id:string]:[number,number][]} = {},
                 currentSectionCoords:{[id:string]:[number,number][]} = {},
-                currentIds:string[] = []
+                currentIds:Datum[] = []
 
             const backgroundWorker = new Worker(new URL("../workers/backgroundWorker", import.meta.url), { type: 'module' })
             // const shapesWorker = new Worker(new URL("../workers/shapesWorker", import.meta.url), { type: 'module' })
@@ -130,7 +139,7 @@ function pizzaChart(): typeof chart {
             backgroundWorker.postMessage({ type: 'set_ctx', canvas: offscreen }, [offscreen!])
             backgroundWorker.postMessage({ type: 'set_dimensions', w: canvasWidth, h: canvasHeight, r: dpi })
             backgroundWorker.postMessage({ type: 'init_chart', sliceSet, sliceAngles, ringSet, ringHeights, sliceColors })
-            shapeWorker.postMessage({type: "init", computeCanvas:offscreen2, canvas:offscreen3, textureW, textureH, radius:pieDiameter},[offscreen2!, offscreen3!])
+            shapeWorker.postMessage({type: "init", computeCanvas:offscreen2, canvas:offscreen3, textureW, textureH, radius:pieDiameter, colorScale},[offscreen2!, offscreen3!])
             
             // shapesWorker.postMessage({ type: 'set_ctx', canvas: offscreen2 }, [offscreen2!])
             // shapesWorker.postMessage({ type: 'set_dimensions', w: canvasWidth, h: canvasHeight, r: dpi })
@@ -153,16 +162,19 @@ function pizzaChart(): typeof chart {
                     let offsets:number[] = [];
                     let offsetArcIds:number[] = [];
                     sectionCoords.sort((a,b) => cmp(a[2], b[2]) || cmp(a[0], b[0]) || cmp(a[1], b[1]))
-                    const sortedIds:string[] = data.sort((a, b) => cmp(sliceSet.indexOf(sliceValue(a)), sliceSet.indexOf(sliceValue(b))) || cmp(ringSet.indexOf(ringValue(a)), ringSet.indexOf(ringValue(b)))).map(d => d[`${dummyValue}_id`])
-                    shapeWorker.postMessage({type:"update_ids", ids:sortedIds})
+                    const sortedDatum:Datum[] = data.sort((a, b) => 
+                        cmp(sliceSet.indexOf(sliceValue(a)), sliceSet.indexOf(sliceValue(b))) || 
+                        cmp(ringSet.indexOf(ringValue(a)), ringSet.indexOf(ringValue(b)))).map(
+                            d => ({id:d[`${dummyValue}_id`], x:0, y:0, colorValue:colorValue(d), shapeValue:'bob'}))
+                    shapeWorker.postMessage({type:"update_ids", ids:sortedDatum})
                     for (let i = 0; i < sectionCoords.length; ++i) {  
                         const coord = sectionCoords[i]   
                         offsets.push((coord[0]/pieDiameter) * 2, -(coord[1]/pieDiameter * 2)) // I think pieDiameter is actually pie radius and so I have to mulitply by 2
                         offsetArcIds.push(coord[2])
                     }
                     /** trying to prevent redundant calls to render **/
-                    if (!deepEqual(sortedIds,currentIds)){
-                        currentIds = sortedIds
+                    if (!deepEqual(sortedDatum,currentIds)){
+                        currentIds = sortedDatum
                         shapeWorker.postMessage({type:"render_in_chunks", offsets, offsetArcIds})
                     }
                     
@@ -265,6 +277,27 @@ function pizzaChart(): typeof chart {
                 updateRingHeights()
             }
 
+            updateColorKey = function() {
+                //probably send this to the shape worker
+                colorValue = (d:any) => d[colorKey]
+                const colorValues:string[] = data.sort((a, b) => 
+                        cmp(sliceSet.indexOf(sliceValue(a)), sliceSet.indexOf(sliceValue(b))) || 
+                        cmp(ringSet.indexOf(ringValue(a)), ringSet.indexOf(ringValue(b)))).map(
+                            d => colorValue(d))
+                shapeWorker.postMessage({type:"update_color_values",colorValues})
+            }
+
+            updateColorSet = function(){
+                //probably send this to the shape worker
+                console.log({colorSet})
+            }
+
+            updateColorScale = function(){
+                //probably send this to the shape worker
+                console.log({colorScale})
+                shapeWorker.postMessage({type:"update_color_scale", colorScale})
+            }
+
             // //helper functions
             function updateSliceColors() {
                 const previouslyUsed = Object.keys(sliceColors).length
@@ -355,7 +388,23 @@ function pizzaChart(): typeof chart {
         if (typeof updateRingSet === 'function') updateRingSet();
         return chart;
     };
-    
+
+    //colors
+    chart.colorKey = function (value: string) {
+        colorKey = value;
+        if (typeof updateColorKey === "function") updateColorKey();
+        return chart
+    }
+    chart.colorSet = function (value: string[]) {
+        colorSet = value;
+        if (typeof updateColorSet === "function") updateColorSet();
+        return chart
+    }
+    chart.colorScale = function (value: {[key:string]:string}) {
+        colorScale = value;
+        if (typeof updateColorScale === "function") updateColorScale();
+        return chart
+    }
 
     //measurements
     chart.margin = function (value: Margin) {
@@ -381,4 +430,4 @@ function pizzaChart(): typeof chart {
 
     return chart;
 }
-export default pizzaChart 
+export {pizzaChart}

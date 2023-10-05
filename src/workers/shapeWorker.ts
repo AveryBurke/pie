@@ -4,7 +4,10 @@ import renderShapes from "../d3/rednerShapes";
 import shapes from "../static/shapes";
 // import { select } from "d3-selection";// gh-pages can't find this, so I have to import all of d3
 import * as d3 from "d3";
-// import { interpolate } from "d3-interpolate";
+import deepEqual from "deep-equal";
+
+
+
 let vornoi: InstanceType<typeof VornoiMesh>;
 let ctx: OffscreenCanvasRenderingContext2D;
 let textureWidth = 0;
@@ -15,7 +18,8 @@ let backgroundRadius = 0;
 let shapeRenderer = renderShapes()
 let data:Datum[] = []
 let arcIndexs:number[] = []
-let dataIds:string[] = []
+let inputData:Datum[] = []
+let colors:string[] = []
 
 const DOMImplementation = xmldom.DOMImplementation;
 let dom: Document = new DOMImplementation().createDocument()
@@ -25,6 +29,8 @@ self.addEventListener("message", (eve) => {
     type,
     computeCanvas,
     canvas,
+    colorScale,
+    colorValues,
     stencil,
     offsets,
     offsetArcIds,
@@ -34,18 +40,21 @@ self.addEventListener("message", (eve) => {
     ids
   }: {
     canvas: OffscreenCanvas;
+    colorScale: {[key:string]:string},
     computeCanvas: OffscreenCanvas;
+    colorValues :string[];
     stencil: number[];
     offsets: number[];
     offsetArcIds: number[];
     textureW: number;
     textureH: number;
     radius: number;
-    ids: string[];
-    type: "init" | "update_stencil" | "update_offsets" | "render" | "render_in_chunks" | "draw" | "update_ids";
+    ids: Datum[];
+    type: "init" | "update_stencil" | "update_offsets" | "render" | "render_in_chunks" | "draw" | "update_ids" | "update_color_scale" | "update_color_values" | "update_data_values";
   } = eve.data;
   switch (type) {
     case "init": {
+      console.log({colorScale})
       backgroundRadius = radius
       ctx = canvas.getContext("2d")!;
       textureWidth = textureW;
@@ -53,7 +62,7 @@ self.addEventListener("message", (eve) => {
       init(computeCanvas);
       shapeRenderer.data([])
       shapeRenderer.colorSet(chunkColors)
-      shapeRenderer.colorValues({"bob":'#1f78b4'})
+      shapeRenderer.colorValues(colorScale)
       shapeRenderer.shapeSet([shapes('circle', 5)])
       shapeRenderer.shapeValues({"bob":shapes('circle', 5)})
       shapeRenderer.drawShapes(() => draw())
@@ -92,7 +101,7 @@ self.addEventListener("message", (eve) => {
     break;
     case "update_ids":{
       if (ids){
-        dataIds = ids;
+        inputData = ids;
       }
     }
     break;
@@ -101,22 +110,40 @@ self.addEventListener("message", (eve) => {
         if (vornoi) vornoi.render();
       }
       break;
+    case "update_color_values":{
+      if (colorValues){
+        colors = colorValues
+        for (let i = 0; i < data.length; i++) {
+         data[i].colorValue = colorValues[i];
+        }
+      }
+      console.log("colors updated: ", data)
+    }
+    break;
+    case "update_color_scale":{
+      if (colorScale) {
+        shapeRenderer.colorValues(colorScale)
+        shapeRenderer.data(data)
+      }
+    } break;
   }
 });
 
 function handlePositions({payload, keepOpen}:{payload:Float32Array, keepOpen:boolean}) {
-  console.log({payload, keepOpen, chunk})
+  // console.log({payload, keepOpen, chunk})
+  data = []
   for (let i = 0; i < payload.length; i += 2) {
     /* 
      * ids are sorted and positions are sorted, before they are sent to the shape worker. This has the effect of presisting ids
     */
-    const d:Datum = {id:dataIds[Math.floor((i + 1) / 2)] + chunk, x:payload[i], y:payload[i + 1], colorValue:'bob', shapeValue:'bob'}
+    const {id,colorValue,shapeValue} = inputData[Math.floor((i + 1) / 2) + chunk]
+    const d:Datum = {id, x:payload[i], y:payload[i + 1], colorValue, shapeValue}
     data.push(d)
   }
   chunk++;
   if (!keepOpen){
     shapeRenderer.data(data)
-    data = []
+    // data = []
     chunk = 0;
   }
 }
@@ -131,12 +158,15 @@ function draw() {
                 yCoord = +node.attr('y'),
                 fill = node.attr('fill')
                 ctx.fillStyle = fill;
+                ctx.strokeStyle = "#FFFFFF"
+                ctx.lineWidth = .5
                 ctx.setTransform(2, 0, 0, 2,(xCoord * backgroundRadius) + 1280 , -(yCoord  * backgroundRadius) + 720)
                 ctx.beginPath();
                 // ctx.globalAlpha = +node.attr('opacity') // something's up with opacity
                 const svgPath = node.attr('d')
                 if (svgPath){
                     ctx.fill(new Path2D(svgPath))
+                    ctx.stroke(new Path2D(svgPath))
                 }
   })
   ctx.globalAlpha = 1;

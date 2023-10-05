@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, useRef } from "react";
+import React, { useContext, useState, useEffect, useRef, useCallback } from "react";
 import { initialState } from "../static/initialState";
 import { GenericContext } from "../contexts/Context";
 import { FilterContext } from "../contexts/FilterContext"
@@ -8,11 +8,12 @@ import SidebarComponentWrapper from "./SidebarComponentWrapper";
 import deepEqual from "deep-equal";
 import useCountRenders from "../hooks/useCountRerenders";
 
-const SidebarParameterComponent = ({ parameter }: { parameter: ParameterType }) => {
+const SidebarParameterComponent = ({ parameter, scaleGenerator }: { parameter: ParameterType, scaleGenerator?:(scale:{[value:string]:string}) => (value:string,key:string) => JSX.Element}) => {
     const { dispatch, state } = useContext(GenericContext)!
     const { filter } = useContext(FilterContext)!
     const { set: filterSet, selected, key: filterKey } = filter
-    const { key, set } = state.parameters[parameter]
+    const { key, set, pallet, scale } = state.parameters[parameter]
+    const values = Object.values(pallet).flat()
 
     const options = Object.keys(state.data[0]).reduce<{ value: string, label: string }[]>((acc, option) => {
         if (!option.includes(dummyValue)) acc = [{ value: option, label: option }, ...acc]
@@ -34,7 +35,7 @@ const SidebarParameterComponent = ({ parameter }: { parameter: ParameterType }) 
     const activeFilterValues = filterSet.filter(elem => selected[elem])
     const filteredData = state.data.filter(d => activeFilterValues.includes(d[filterKey]))
     let initialCounts = Object.fromEntries(set.map(elem => [elem, filteredData.filter(d => d[key] === elem).length]))
-    const refCounts = useRef(initialCounts)
+    const refSet = useRef<string[]>(set)
     const [counts, setCounts] = useState(Object.fromEntries(set.map(elem => [elem, {currentCount:initialCounts[elem], previousCount:initialCounts[elem]}])))
     useEffect(() => {
         const {lastChange} = filter
@@ -45,11 +46,14 @@ const SidebarParameterComponent = ({ parameter }: { parameter: ParameterType }) 
         setCounts(Object.fromEntries(set.map(elem => [elem, {currentCount:newCounts[elem], previousCount:counts[elem] ? counts[elem].currentCount : newCounts[elem]}])))
     }
     }, [filter, set])
-   
-    useEffect(() => {console.log(`${parameter} counts `, counts)},[counts])
+    const optionalDivs = useCallback(() => {
+        if (scaleGenerator){
+            return scaleGenerator(scale)
+        }
+    }, [scale])() || null
+    const props:ComponenetPropsType = { initialValues:set, handleSort, counts, optionalDivs}
+    const wrapperProps = { handleChange, handleReset, currentKey:key, options, title: parameter, props, ControlPanel: Sortable }
 
-    const wrapperProps = { handleChange, handleReset, currentKey:key, options, title: parameter, props: { initialValues:set, handleSort, counts }, ControlPanel: Sortable }
-    //@ts-ignore
     return (<SidebarComponentWrapper {...wrapperProps} />)
 }   
 export default SidebarParameterComponent

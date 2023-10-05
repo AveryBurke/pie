@@ -13,7 +13,7 @@ const reorder = (list: string[], startIndex: number, endIndex: number) => {
 
 
 const Sortable = (props:ComponenetPropsType) => {
-  const { initialValues, handleSort, counts } = props
+  const { initialValues, handleSort, counts, optionalDivs } = props
   function onDragEnd(result: any) {
     if (!result.destination) {
       return;
@@ -31,10 +31,17 @@ const Sortable = (props:ComponenetPropsType) => {
     handleSort(values);
   }
 
+  let divs: JSX.Element[] = []
+  if (optionalDivs) divs = initialValues.map((value, i) => optionalDivs(value,`${i}_${value}`))
   return (
-    <DragDropContext onDragEnd={onDragEnd}>
-      <DropTarget droppableId="l" column={{ rows: initialValues }} counts = {counts!} />
-    </DragDropContext>
+    <div style={{display:'flex'}}>
+      <DragDropContext onDragEnd={onDragEnd}>
+        <DropTarget droppableId="l" column={{ rows: initialValues }} counts = {counts!} />
+      </DragDropContext>
+      <div style={{display:'flex', flexDirection:"column", justifyContent:"space-around"}}>
+        {divs}
+      </div>
+    </div>
   );
 }
 
