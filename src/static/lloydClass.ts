@@ -66,13 +66,6 @@ export default class VornoiMesh {
       console.error("compressed textures not supported on this machine")
     }
 
-    // let floatExtention = gl.getExtension("EXT_texture_compression_bptc")
-    // if (!floatExtention){
-    //   console.error("compressed floating point texture not avaiable on this machine")
-    // }
-
-
-    
     this.stencilProgram = twgl.createProgramInfo(
       gl,
       [stencilShaderSource.vertex, stencilShaderSource.fragment],
@@ -536,7 +529,7 @@ export default class VornoiMesh {
           "colors"
         );
         gl.uniform3fv(arrayUniform, new Float32Array(colors));
-        gl.clearColor(0, 0, 0, 0);
+        gl.clearColor(-1, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
         twgl.setUniforms(debugProgramInfo, uniforms);
         gl.drawArrays(gl.TRIANGLES, 0, quad.length / 2);
@@ -545,8 +538,9 @@ export default class VornoiMesh {
   }
 
   render() {
-      const debugColors:number[] = []
-      // for (let i = 0; i < this.offsets.length / 2; i++) {
+      // const debugColors:number[] = []
+      // const numberOfArcs = new Set(this.offsetArcIds)
+      // for (let i = 0; i < numberOfArcs.size + 1; i++) {
       //     debugColors.push(Math.random(), Math.random(), Math.random())
       // }
       // console.log('rendering with offsets ', this.offsets)
@@ -556,6 +550,7 @@ export default class VornoiMesh {
         this.renderIntermediateTexture();
         this.transformFeedbackStep();
       }
+      // this.debug("u_arc", this.stencilFrameBufferInfo.attachments[0],debugColors)
       // this.debug("u_vornoi", this.vornoiFrameBufferInfo.attachments[0], debugColors)
       return this.getBatchPositions();
   
@@ -568,8 +563,8 @@ export default class VornoiMesh {
       currentArcIndexes:number[] = []
       
       for (let i = 0; i < offsets.length; i += 2) {
-        //try to group arcs by 200
-        if (currentVectors.length > 400 && currentArc !== offsetArcIds[Math.floor((i + 1) / 2)]){
+        //try to group arcs by 300
+        if (currentVectors.length > 600 && currentArc !== offsetArcIds[Math.floor((i + 1) / 2)]){
           // console.log({currentVectors, currentArcIndexes})
           this.updateOffsets(currentVectors, currentArcIndexes)
           this.keepOpen = true
