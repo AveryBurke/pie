@@ -9,8 +9,10 @@ import deepEqual from "deep-equal";
 import useCountRenders from "../hooks/useCountRerenders";
 
 const SidebarParameterComponent = ({ parameter, scaleGenerator }: { parameter: ParameterType, scaleGenerator?:(scale:{[value:string]:string}) => (value:string,key:string) => JSX.Element}) => {
-    const { dispatch, state } = useContext(GenericContext)!
+    const { dispatch, state } = useContext(GenericContext)
+    console.log({dispatch, state, GenericContext})
     if (dispatch && state){
+    
     const { filter } = useContext(FilterContext)!
     const { set: filterSet, selected, key: filterKey } = filter
     const { key, set, pallet, scale } = state.parameters[parameter]
