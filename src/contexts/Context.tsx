@@ -3,7 +3,7 @@ import stateReducer from "../reducers/stateReducer";
 import { initialState } from "../static/initialState";
 import {pizzaChart} from "../d3/pizza";
 
-const GenericContext = React.createContext<Values | null>(null);
+const GenericContext = React.createContext<Values|{refChart:null,state:null,dispatch:null}>({refChart:null,state:null,dispatch:null});
 
 const GenericContextProvider = (props: any) => {
 

@@ -10,6 +10,7 @@ import useCountRenders from "../hooks/useCountRerenders";
 
 const SidebarParameterComponent = ({ parameter, scaleGenerator }: { parameter: ParameterType, scaleGenerator?:(scale:{[value:string]:string}) => (value:string,key:string) => JSX.Element}) => {
     const { dispatch, state } = useContext(GenericContext)!
+    if (dispatch && state){
     const { filter } = useContext(FilterContext)!
     const { set: filterSet, selected, key: filterKey } = filter
     const { key, set, pallet, scale } = state.parameters[parameter]
@@ -54,6 +55,6 @@ const SidebarParameterComponent = ({ parameter, scaleGenerator }: { parameter: P
     const props:ComponenetPropsType = { initialValues:set, handleSort, counts, optionalDivs}
     const wrapperProps = { handleChange, handleReset, currentKey:key, options, title: parameter, props, ControlPanel: Sortable }
 
-    return (<SidebarComponentWrapper {...wrapperProps} />)
+    return (<SidebarComponentWrapper {...wrapperProps} />)}
 }   
 export default SidebarParameterComponent
