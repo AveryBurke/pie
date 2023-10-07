@@ -166,6 +166,7 @@ function pizzaChart(): typeof chart {
                         cmp(sliceSet.indexOf(sliceValue(a)), sliceSet.indexOf(sliceValue(b))) || 
                         cmp(ringSet.indexOf(ringValue(a)), ringSet.indexOf(ringValue(b)))).map(
                             d => ({id:d[`${dummyValue}_id`], x:0, y:0, colorValue:colorValue(d), shapeValue:'bob'}))
+                    console.log({sortedDatum})
                     shapeWorker.postMessage({type:"update_ids", ids:sortedDatum})
                     for (let i = 0; i < sectionCoords.length; ++i) {  
                         const coord = sectionCoords[i]   
@@ -179,26 +180,6 @@ function pizzaChart(): typeof chart {
                     }
                     
                 }
-                // if (!vornoiInitialized) {
-                //     voroni
-                //         // .numberOfCycles(50)
-                //         .subscribe((results:number[]) => {
-                //             const coords:[number, number][] = []
-                //             console.log('coords going in ', results)
-                //             for (let i = 0; i < results.length; i += 2){
-                //                 const x =( (results[i]* 2) - 1) * 1280,
-                //                     y = ((results[i + 1] * 2) - 1) * 720
-                //                     coords.push([x, y])
-                //             }
-                //             console.log('coords coming out: ', coords)
-                //             shapesWorker.postMessage({type:'update_coords', coords})
-                //         })
-                //     voroni()
-                //     vornoiInitialized = true
-                // }
-                // console.time('it took this long to get a result from the gpu')
-                // voroni.render()
-                // console.timeEnd('it took this long to get a result from the gpu')
             })
 
 
@@ -217,15 +198,17 @@ function pizzaChart(): typeof chart {
                 }
                 backgroundWorker.postMessage({type:"update_arc_count", arcCount})
                 if (!deepEqual(updateSliceCount, sliceCount)) {
-                    console.log('calling update slice angles')
                     sliceCount = updateSliceCount
-                    updateSliceAngles()
+                    onlyUpdateSlcieAngles()
                 }
+                //if slice counts have changed, then at least one ring count must also have changed
                 if (!deepEqual(updateRingCount, ringCount)) {
-                    console.log("calling update ring heights")
                     ringCount = updateRingCount
+                    // onlyUpdateRingHeights()
+                    //if slice angles have changed then calling updateRingHeights will update the background as well
                     updateRingHeights()
                 }
+                
             }
 
             updateSliceKey = function () {
@@ -337,6 +320,40 @@ function pizzaChart(): typeof chart {
                     ringSet,
                     ringHeights
                 })
+            }
+            function onlyUpdateSlcieAngles() {
+                pieGenerator = pie<string>()
+                .value(slice => sliceCount[slice]!)
+                .sort((a: string, b: string) => sliceSet.indexOf(a) - sliceSet.indexOf(b)),
+                sliceAngles = Object.fromEntries(pieGenerator(sliceSet).map(p => {
+                    const { startAngle, endAngle } = p
+                    return [p.data, { startAngle, endAngle }]
+                }))
+            backgroundWorker.postMessage({
+                type: 'update_slice_angles',
+                sliceAngles,
+            })
+            }
+            function onlyUpdateRingHeights() {
+                function updateRingHeights() {
+                    ringHeights = ringSet.reduce<{ [key: string]: { innerRadius: number, outerRadius: number } }>((acc, ring, i) => {
+                        const height = ringCount[ring]! * (pieRadius / data.length)
+                        if (i === 0) {
+                            acc[ring] = { innerRadius: 0, outerRadius: height }
+                        } else {
+                            const prev = ringSet[i - 1]
+                            const { outerRadius: prevOuter } = acc[prev!] || { outerRadius: 0 }
+                            const outerRadius = height + prevOuter
+                            acc[ring] = { innerRadius: prevOuter, outerRadius }
+                        }
+                        return acc
+                    }, {})
+    
+                    backgroundWorker.postMessage({
+                        type: 'update_ring_heights',
+                        ringHeights
+                    })
+                }
             }
             function cmp(a:number, b:number) {
                 if (a > b) return +1;

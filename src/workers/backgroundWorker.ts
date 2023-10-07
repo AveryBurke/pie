@@ -133,8 +133,11 @@ class worker {
     }
 
     updateSliceAngles(sliceAngles: { [slice: string]: { startAngle: number, endAngle: number } }) {
-        this.sliceAngles = sliceAngles
-        this.generateArcs()
+        this.sliceAngles = sliceAngles 
+    }
+
+    updateRingHeights(ringHeights: { [ring: string]: { innerRadius: number, outerRadius: number } }) {
+        this.ringHeights = ringHeights
     }
 
     updateSliceSet(sliceSet: string[], sliceAngles: { [slice: string]: { startAngle: number, endAngle: number } }, sliceColors: { [key: string]: string[] }) {
@@ -302,6 +305,12 @@ self.addEventListener('message', msg => {
     }
     if (type === "update_arc_count" && arcCount){
         brw.updateArcCount(arcCount)
+    }
+    if (type === "update_ring_heights" && ringHeights){
+        brw.updateRingHeights(ringHeights)
+    }
+    if (type === "update_slice_angles" && sliceAngles){
+        brw.updateSliceAngles(sliceAngles)
     }
     if (type === 'remove_slices') {
         brw.removeSlices()

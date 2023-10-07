@@ -4,7 +4,6 @@ import renderShapes from "../d3/rednerShapes";
 import shapes from "../static/shapes";
 // import { select } from "d3-selection";// gh-pages can't find this, so I have to import all of d3
 import * as d3 from "d3";
-import deepEqual from "deep-equal";
 
 
 
@@ -12,7 +11,6 @@ let vornoi: InstanceType<typeof VornoiMesh>;
 let ctx: OffscreenCanvasRenderingContext2D;
 let textureWidth = 0;
 let textureHeight = 0;
-let chunk = 0;
 let chunkColors = ['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99','#b15928']
 let backgroundRadius = 0;
 let shapeRenderer = renderShapes()
@@ -20,6 +18,7 @@ let data:Datum[] = []
 let arcIndexs:number[] = []
 let inputData:Datum[] = []
 let colors:string[] = []
+let previouslyPayloadLength = 0
 
 const DOMImplementation = xmldom.DOMImplementation;
 let dom: Document = new DOMImplementation().createDocument()
@@ -88,9 +87,9 @@ self.addEventListener("message", (eve) => {
     case "render_in_chunks":
       {
         if (offsets && offsetArcIds && vornoi){
-          console.log('sending render command with offsets: ', offsets)
           arcIndexs = offsetArcIds;
-          chunk = 0
+          // chunk = 0
+          data = []
           vornoi.renderInChunks(offsets, offsetArcIds)
         }
       }
@@ -101,6 +100,7 @@ self.addEventListener("message", (eve) => {
     break;
     case "update_ids":{
       if (ids){
+        console.log({ids})
         inputData = ids;
       }
     }
@@ -114,7 +114,10 @@ self.addEventListener("message", (eve) => {
       if (colorValues){
         colors = colorValues
         for (let i = 0; i < data.length; i++) {
-         data[i].colorValue = colorValues[i];
+          if (inputData[i]){
+            inputData[i].colorValue = colorValues[i]
+          }
+          data[i].colorValue = colorValues[i];
         }
       }
       console.log("colors updated: ", data)
@@ -130,21 +133,20 @@ self.addEventListener("message", (eve) => {
 });
 
 function handlePositions({payload, keepOpen}:{payload:Float32Array, keepOpen:boolean}) {
-  // console.log({payload, keepOpen, chunk})
-  data = []
+  console.log({keepOpen, previouslyPayloadLength})
   for (let i = 0; i < payload.length; i += 2) {
     /* 
      * ids are sorted and positions are sorted, before they are sent to the shape worker. This has the effect of presisting ids
     */
-    const {id,colorValue,shapeValue} = inputData[Math.floor((i + 1) / 2) + chunk]
+    const index = Math.floor((i + 1) / 2) + previouslyPayloadLength/2
+    const {id,colorValue,shapeValue} = inputData[index]
     const d:Datum = {id, x:payload[i], y:payload[i + 1], colorValue, shapeValue}
     data.push(d)
   }
-  chunk++;
+  previouslyPayloadLength += payload.length;
   if (!keepOpen){
     shapeRenderer.data(data)
-    // data = []
-    chunk = 0;
+    previouslyPayloadLength = 0;
   }
 }
 
