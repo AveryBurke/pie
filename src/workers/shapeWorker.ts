@@ -65,6 +65,7 @@ self.addEventListener("message", (eve) => {
       shapeRenderer.shapeSet([shapes('circle', 5)])
       shapeRenderer.shapeValues({"bob":shapes('circle', 5)})
       shapeRenderer.drawShapes(() => draw())
+      console.log({shapeRenderer, dom})
       d3.select(dom).call(shapeRenderer)
     }
     break;
