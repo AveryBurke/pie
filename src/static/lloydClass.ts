@@ -563,8 +563,8 @@ export default class VornoiMesh {
       currentArcIndexes:number[] = []
       
       for (let i = 0; i < offsets.length; i += 2) {
-        //try to group arcs by 300
-        if (currentVectors.length > 600 && currentArc !== offsetArcIds[Math.floor((i + 1) / 2)]){
+        //try to group arcs by 100
+        if (currentVectors.length > 200 && currentArc !== offsetArcIds[Math.floor((i + 1) / 2)]){
           // console.log({currentVectors, currentArcIndexes})
           this.updateOffsets(currentVectors, currentArcIndexes)
           this.keepOpen = true
