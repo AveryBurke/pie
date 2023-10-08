@@ -166,7 +166,7 @@ function pizzaChart(): typeof chart {
                         cmp(sliceSet.indexOf(sliceValue(a)), sliceSet.indexOf(sliceValue(b))) || 
                         cmp(ringSet.indexOf(ringValue(a)), ringSet.indexOf(ringValue(b)))).map(
                             d => ({id:d[`${dummyValue}_id`], x:0, y:0, colorValue:colorValue(d), shapeValue:'bob'}))
-                    console.log({sortedDatum})
+
                     shapeWorker.postMessage({type:"update_ids", ids:sortedDatum})
                     for (let i = 0; i < sectionCoords.length; ++i) {  
                         const coord = sectionCoords[i]   
