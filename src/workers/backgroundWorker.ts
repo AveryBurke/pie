@@ -90,7 +90,7 @@ class worker {
                             const partitions = partitionNumber(arcCount[id], Math.ceil(arcCount[id] / 300))
                             if (partitions){
                                 for (let i = 0; i < partitions.length; i++) {
-                                    const subarcId = `_${slice}_${ring}_subarc_${i}`
+                                    const subarcId = id + `_subarc_${i}`
                                     arcCount[subarcId] = partitions[i];
                                     this.idSet.insert(subarcId)
                                     const theta = endAngle - startAngle
@@ -99,11 +99,19 @@ class worker {
                                     subsections.push({startAngle:sa,endAngle:ea,innerRadius,outerRadius,id:subarcId})
                                 }
                             }
-                        } else {
+                        } else  if (state === 'add') {
+                            this.idSet.insert(id)
                             subsections.push({id,innerRadius,outerRadius,endAngle,startAngle})
                         }
-                        if (state === 'add') this.idSet.insert(id)
-                        if (state === 'remove') this.idSet.remove(id)
+                        if (state === 'remove') {
+                            this.idSet.remove(id)
+                            if (arcCount[id] > 300){
+                                for (let i = 0; i < Math.ceil(arcCount[id] / 300); i++) {
+                                    const subid = id + `_subarc_${i}`
+                                    this.idSet.remove(subid)
+                                }
+                            }
+                        }
                         const slicePallet = sliceColors[slice]!
                         const fill = slicePallet[j % slicePallet.length]!
                         const arc = { id, innerRadius, outerRadius, startAngle, endAngle, fill, subsections }
@@ -113,7 +121,7 @@ class worker {
                 }, [])
                 acc = [...acc, ...sections]
             }
-            console.log("arcs ", acc)
+            console.log("id set ", this.idSet)
             return acc
         }, [])
 
@@ -130,7 +138,7 @@ class worker {
             const { startAngle, endAngle } = sliceAngles[slice]!
             return ringSet.map((ring, j) => {
                 const { innerRadius, outerRadius } = ringHeights[ring]!
-                const id = `_${slice}_${ring}`
+                const id = `_${slice}_${ring}_init`
                 this.idSet.insert(id)
                 const slicePallet = sliceColors[slice]!
                 const fill = slicePallet[j % slicePallet.length]!
@@ -259,7 +267,6 @@ class worker {
                     const { startAngle, endAngle, innerRadius, outerRadius, id } = sub
                     // const centroid = arc().centroid({startAngle, endAngle, innerRadius, outerRadius})
                     // const centroid = [Math.round(x), Math.round(y)]
-                    // console.log({arcCount, id:d.id})
                     for (let i = 0; i < arcCount[id]; ++i) {
                             const randomClampedR = Math.random() * (outerRadius - innerRadius) + innerRadius,
                                 randomClampedTheta = (Math.random() * (endAngle - startAngle) + startAngle) - Math.PI / 2,

@@ -53,7 +53,6 @@ self.addEventListener("message", (eve) => {
   } = eve.data;
   switch (type) {
     case "init": {
-      console.log({colorScale})
       backgroundRadius = radius
       ctx = canvas.getContext("2d")!;
       textureWidth = textureW;
@@ -101,7 +100,7 @@ self.addEventListener("message", (eve) => {
     break;
     case "update_ids":{
       if (ids){
-        console.log({ids})
+        // console.log({ids})
         inputData = ids;
       }
     }
@@ -121,7 +120,7 @@ self.addEventListener("message", (eve) => {
           data[i].colorValue = colorValues[i];
         }
       }
-      console.log("colors updated: ", data)
+      // console.log("colors updated: ", data)
     }
     break;
     case "update_color_scale":{
@@ -134,7 +133,7 @@ self.addEventListener("message", (eve) => {
 });
 
 function handlePositions({payload, keepOpen}:{payload:Float32Array, keepOpen:boolean}) {
-  console.log({keepOpen, previouslyPayloadLength})
+  // console.log({keepOpen, previouslyPayloadLength})
   for (let i = 0; i < payload.length; i += 2) {
     /* 
      * ids are sorted and positions are sorted, before they are sent to the shape worker. This has the effect of presisting ids
@@ -186,6 +185,6 @@ function init(canvas: OffscreenCanvas) {
     // if (!floatExtention){
     //   console.error("compressed floating point texture not avaiable on this machine")
     // }
-    vornoi = new VornoiMesh(gl, textureWidth, textureHeight, 200, handlePositions);
+    vornoi = new VornoiMesh(gl, textureWidth, textureHeight, 100, handlePositions);
   }
 }
