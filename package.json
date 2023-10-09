@@ -5,9 +5,9 @@
   "source": "src/index.html",
   "scripts": {
     "start": "parcel --no-cache",
-    "build": "parcel --no-cache build",
+    "build": "parcel build --no-cache",
     "browserify": "browserify src/DOMImplementation.js --s xmldom > src/DOMImplementation_bundle.js",
-    "predeploy": "rm -rf dist && parcel --no-cache build src/index.html --public-url https://averyburke.github.io/pie/",
+    "predeploy": "rm -rf dist && yarn build src/index.html --public-url https://averyburke.github.io/pie/",
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {

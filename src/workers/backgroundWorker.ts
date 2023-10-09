@@ -5,6 +5,7 @@ import { Queue } from '../static/queue'
 import renderBackground from "../d3/renderBackground"
 import { svgPathProperties } from "svg-path-properties"
 import earcut from "earcut";
+import partitionNumber from "../static/partitionNumber";
 import IndexedSet from "../static/indexedSet";
 // @ts-ignore
 import xmldom from "../domparser_bundle";
@@ -76,7 +77,7 @@ class worker {
 
     /** "add" and "remove" are only for the id set. there is no penalty for duplicate adds*/
     generateArcs(state:"add" | "remove" = "add") {
-        const { ringSet, ringHeights, sliceSet, sliceColors, sliceAngles } = this
+        const { ringSet, ringHeights, sliceSet, sliceColors, sliceAngles, arcCount } = this
         return sliceSet.reduce<Section[]>((acc, slice) => {
             if (sliceAngles[slice]) {
                 const { startAngle, endAngle } = sliceAngles[slice]!
@@ -84,18 +85,35 @@ class worker {
                     if (ringHeights[ring]) {
                         const { innerRadius, outerRadius } = ringHeights[ring]!
                         const id = `_${slice}_${ring}`
+                        const subsections:Subsection[] = []
+                        if (arcCount[id] > 300 && state === 'add'){ 
+                            const partitions = partitionNumber(arcCount[id], Math.ceil(arcCount[id] / 300))
+                            if (partitions){
+                                for (let i = 0; i < partitions.length; i++) {
+                                    const subarcId = `_${slice}_${ring}_subarc_${i}`
+                                    arcCount[subarcId] = partitions[i];
+                                    this.idSet.insert(subarcId)
+                                    const theta = endAngle - startAngle
+                                    const sa = startAngle + (i * (theta/partitions.length))
+                                    const ea = startAngle + ((i + 1) * (theta/partitions.length))
+                                    subsections.push({startAngle:sa,endAngle:ea,innerRadius,outerRadius,id:subarcId})
+                                }
+                            }
+                        } else {
+                            subsections.push({id,innerRadius,outerRadius,endAngle,startAngle})
+                        }
                         if (state === 'add') this.idSet.insert(id)
                         if (state === 'remove') this.idSet.remove(id)
                         const slicePallet = sliceColors[slice]!
                         const fill = slicePallet[j % slicePallet.length]!
-                        const arc = { id, innerRadius, outerRadius, startAngle, endAngle, fill }
-                        // const border = { id: id + '_border', innerRadius: innerRadius + 5, outerRadius: outerRadius - 5, startAngle: startAngle + 5 * Math.PI / 180, endAngle: endAngle - 5 * Math.PI / 180, fill: 'black' }
+                        const arc = { id, innerRadius, outerRadius, startAngle, endAngle, fill, subsections }
                         acc = [...acc, arc]
                     }
                     return acc
                 }, [])
                 acc = [...acc, ...sections]
             }
+            console.log("arcs ", acc)
             return acc
         }, [])
 
@@ -116,7 +134,7 @@ class worker {
                 this.idSet.insert(id)
                 const slicePallet = sliceColors[slice]!
                 const fill = slicePallet[j % slicePallet.length]!
-                return { id, innerRadius, outerRadius, startAngle, endAngle, fill }
+                return { id, innerRadius, outerRadius, startAngle, endAngle, fill, subsections:[]}
             })
         })
 
@@ -211,45 +229,49 @@ class worker {
         const arcs = this.generateArcs() //<--NOTE: destrcutring the method from "this" causes an error. look into that
         const {idSet, arcCount} = this
         arcs.forEach(function (d, i) {
-                // triangulate the polygon
-                const path = generator(d) || "",
+                //itterate through subsections
+                d.subsections.forEach(sub => {
+                    // triangulate the polygon
+                    const path = generator(sub) || "",
                     num_points = 100,
                     points: number[] = [],
                     pathProperties = new svgPathProperties(path),
                     pathLength = pathProperties.getTotalLength()
-                for (let i = 0; i < num_points; ++i) {
-                    let { x, y } = pathProperties.getPointAtLength(i * pathLength / (num_points - 1))
-                    points.push(x)
-                    points.push(y)
-                }
-                const idIndex = idSet.getIndex(d.id)
-                const ears = earcut(points)//<--returns the indexes of x coordinates of the triangle vertices in the points array
-                    //fetch the coordiantes of the triangle vertices from the points array
-                    for (let i = 0; i < ears.length; i++) {
-                        const index = ears[i] * 2
-                        sectionVerts.push(points[index], points[index + 1], idIndex);
+                    for (let i = 0; i < num_points; ++i) {
+                        let { x, y } = pathProperties.getPointAtLength(i * pathLength / (num_points - 1))
+                        points.push(x)
+                        points.push(y)
                     }
-                //     vertices = ears.reduce<[number, number, number][]>((acc, index) => {
-                //         const i = index * 2
-                //         return [...acc, [points[i]!, points[i + 1]!, idIndex]]
-                //     }, [])
-                // sectionVerts[d.id] = vertices
+                    const idIndex = idSet.getIndex(sub.id)
+                    const ears = earcut(points)//<--returns the indexes of x coordinates of the triangle vertices in the points array
+                        //fetch the coordiantes of the triangle vertices from the points array
+                        for (let i = 0; i < ears.length; i++) {
+                            const index = ears[i] * 2
+                            sectionVerts.push(points[index], points[index + 1], idIndex);
+                        }
+                    //     vertices = ears.reduce<[number, number, number][]>((acc, index) => {
+                    //         const i = index * 2
+                    //         return [...acc, [points[i]!, points[i + 1]!, idIndex]]
+                    //     }, [])
+                    // sectionVerts[d.id] = vertices
 
-                //seed the positions within the polygon
-                const { startAngle, endAngle, innerRadius, outerRadius, id } = d
-                // const centroid = arc().centroid({startAngle, endAngle, innerRadius, outerRadius})
-                // const centroid = [Math.round(x), Math.round(y)]
-                // console.log({arcCount, id:d.id})
-                for (let i = 0; i < arcCount[d.id]; ++i) {
-                        const randomClampedR = Math.random() * (outerRadius - innerRadius) + innerRadius,
-                            randomClampedTheta = (Math.random() * (endAngle - startAngle) + startAngle) - Math.PI / 2,
-                            x = Math.cos(randomClampedTheta) * randomClampedR,
-                            y = Math.sin(randomClampedTheta) * randomClampedR
-                        sectionCoords.push([x, y, idIndex])
-                        // const jitterX = Math.random()
-                        // const jitterY = Math.random()
-                        // sectionCoords.push(centroid[0] + jitterX, centroid[1] + jitterY, idIndex)
-                }
+                    //seed the positions within the polygon
+                    const { startAngle, endAngle, innerRadius, outerRadius, id } = sub
+                    // const centroid = arc().centroid({startAngle, endAngle, innerRadius, outerRadius})
+                    // const centroid = [Math.round(x), Math.round(y)]
+                    // console.log({arcCount, id:d.id})
+                    for (let i = 0; i < arcCount[id]; ++i) {
+                            const randomClampedR = Math.random() * (outerRadius - innerRadius) + innerRadius,
+                                randomClampedTheta = (Math.random() * (endAngle - startAngle) + startAngle) - Math.PI / 2,
+                                x = Math.cos(randomClampedTheta) * randomClampedR,
+                                y = Math.sin(randomClampedTheta) * randomClampedR
+                            sectionCoords.push([x, y, idIndex])
+                            // const jitterX = Math.random()
+                            // const jitterY = Math.random()
+                            // sectionCoords.push(centroid[0] + jitterX, centroid[1] + jitterY, idIndex)
+                    }
+                })
+                
         })
         self.postMessage({ sectionVerts, sectionCoords})
     }
