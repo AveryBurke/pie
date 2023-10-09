@@ -1,18 +1,4 @@
-// import type chart from "../src/d3/pizza";
 declare type Chart = ReturnType<typeof import("../src/d3/pizza").pizzaChart>
-
-// {
-//     (selection: d3.Selection<HTMLDivElement, any, any, any>): void
-//     data(value:any[]):Chart
-//     sliceKey(value:string):Chart
-//     sliceSet(value:string[]):Chart
-//     sliceColors(value: {[slice:string]:string[]}):Chart
-//     ringKey(value:string):Chart
-//     ringSet(value:string[]):Chart
-//     margin(value:Margin):Chart,
-//     canvasWidth(value:number):Chart
-//     canvasHeight(value:number):Chart
-// } 
 
 declare type Arc = {
     path: string;
@@ -127,13 +113,21 @@ declare interface QueueInterface<T> {
 declare type ChangeDuration = Task<'duration', number>
 declare type UpdateSections = Task<'sections', Section[]>
 declare type QueueTask = ChangeDuration | UpdateSections
+declare type Subsection = {
+    id: string,
+    startAngle:number,
+    endAngle:number,
+    innerRadius:number,
+    outerRadius:number,
+}
 declare type Section = {
     id: string,
     fill: string,
     startAngle:number,
     endAngle:number,
     innerRadius:number,
-    outerRadius:number
+    outerRadius:number,
+    subsections:Subsection[]
 }
 
 declare type ParameterType = 'ring' | 'slice' | 'color'

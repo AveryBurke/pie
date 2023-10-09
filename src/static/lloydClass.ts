@@ -538,11 +538,14 @@ export default class VornoiMesh {
   }
 
   render() {
-      // const debugColors:number[] = []
+      const debugColors:number[] = []
       // const numberOfArcs = new Set(this.offsetArcIds)
       // for (let i = 0; i < numberOfArcs.size + 1; i++) {
       //     debugColors.push(Math.random(), Math.random(), Math.random())
       // }
+    //   for (let i = 0; i < this.offsets.length; i += 2) {
+    //     debugColors.push(Math.random(), Math.random(), Math.random())
+    // }
       // console.log('rendering with offsets ', this.offsets)
       for (let i = 0; i < this.cycles; i++) {
         this.gl.flush()
