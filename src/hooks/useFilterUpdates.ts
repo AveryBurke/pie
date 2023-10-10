@@ -4,7 +4,7 @@ import { FilterContext } from "../contexts/FilterContext";
 const useFilterUpdates = () => {
     const updateChart = useChartUpdates()
     const { filter } = useContext(FilterContext)!
-    const passActionToChart = (action: string) => {
+    const passActionToChart = (action: ChartAction) => {
         if (updateChart) {
             updateChart(action)
         }
