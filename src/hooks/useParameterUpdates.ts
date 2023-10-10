@@ -15,7 +15,7 @@ const useParameterUpdate = () => {
     }
 
     useEffect(() => {
-        if (state.lastChange) {
+        if (state && state.lastChange) {
             const { type, parameter } = state.lastChange
             switch (type) {
                 case `reset_parameter`:
@@ -52,12 +52,15 @@ const useParameterUpdate = () => {
                     passActionToChart('update_chart_data')
                     break
                 case 'update_state':
-                    console.log('updating state')
+                    // const {data} = state
+                    // dispatch({type:'update_data', payload:data})
                     passActionToChart('update_chart_data')
                     passActionToChart('update_chart_slice_key')
                     passActionToChart('update_chart_slice_set')
                     passActionToChart('update_chart_ring_key')
                     passActionToChart('update_chart_ring_set')
+                    
+
                     break
                 default:
                     break;

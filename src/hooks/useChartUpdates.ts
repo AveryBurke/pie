@@ -10,6 +10,7 @@ const useChartUpdates = () => {
     selected: selectedFilterValues,
   } = filter;
   return function (action: ChartAction) {
+    if (refChart)
     switch (action) {
       case `update_chart_slice_set`:
         refChart.sliceSet(state.parameters.slice.set);

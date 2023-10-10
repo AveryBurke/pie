@@ -17,7 +17,7 @@ const Sidebar = () => {
       <div onClick={toggleSidebarState} className={`sidebar-toggle ${sidebarState}`}>
         {sidebarState === 'open' ? <span>&#60;</span> : <span>&#62;</span>}
       </div>
-      <GenerateData />
+      {/* <GenerateData /> */}
       <SidebarParameterComponent parameter="slice"/>
       <SidebarParameterComponent parameter="ring"/>
       <SidebarParameterComponent parameter="color" scaleGenerator={colorScaleGenerator}/>

@@ -361,8 +361,13 @@ function pizzaChart(): typeof chart {
                 return 0;
             }
             //boot
-            updateData()
-
+            // updateSliceKey()
+            updateSliceSet()
+            // updateRingKey()
+            // updateRingSet()
+            // updateColorKey()
+            // updateColorScale()
+            // updateData()
 
         })
     }

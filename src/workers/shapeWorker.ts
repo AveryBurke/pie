@@ -120,7 +120,6 @@ self.addEventListener("message", (eve) => {
           data[i].colorValue = colorValues[i];
         }
       }
-      // console.log("colors updated: ", data)
     }
     break;
     case "update_color_scale":{
@@ -136,7 +135,7 @@ function handlePositions({payload, keepOpen}:{payload:Float32Array, keepOpen:boo
   // console.log({keepOpen, previouslyPayloadLength})
   for (let i = 0; i < payload.length; i += 2) {
     /* 
-     * ids are sorted and positions are sorted, before they are sent to the shape worker. This has the effect of presisting ids
+     * ids and positions are sorted, before they are sent to the shape worker. This has the effect of presisting ids
     */
     const index = Math.floor((i + 1) / 2) + previouslyPayloadLength/2
     const {id,colorValue,shapeValue} = inputData[index]

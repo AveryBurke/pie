@@ -1,5 +1,15 @@
 declare type Chart = ReturnType<typeof import("../src/d3/pizza").pizzaChart>
 
+declare type User = {
+    birthMonth: 'January' | 'February' | 'March' | 'April' | 'May' | 'June' | 'July' | 'August' | 'September' | 'October' | 'November' | 'December' | 'Smarch'
+    birthDay: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday'
+    email:string,
+    name:string,
+    chirality: 'left handed' | 'right handed'
+    subscriptionTier: 'free' | 'basic' | 'business',
+    buildingNumber: 'bld_1' | 'bld_2' | 'bld_3' | 'bld_4' | 'bld_5'
+  };
+
 declare type Arc = {
     path: string;
     boarder: [number, number][];
@@ -131,16 +141,16 @@ declare type Section = {
 }
 
 declare type ParameterType = 'ring' | 'slice' | 'color'
-declare type Parameter = {[key in ParameterType]:{
+declare type Parameter = {
     key:string,
     set:string[],
     counts:{[key:stirng]:number}
     pallet:{[key:string]:`#${string}`[]}
     scale:{[key:string]:string}
-}}
+}
 
 declare type State = {
-    parameters:Parameter,
+    parameters: {[key in ParameterType]:Parameter},
     data: any[],
     lastChange:LastChange
 }
@@ -155,7 +165,8 @@ declare type Filter = {
 type Values = {
     state: State
     dispatch: React.Dispatch<Disparcth>
-    refChart:Chart
+    refChart:Chart,
+    numberOfUsers:number
   }
 
 type ComponenetPropsType = { initialValues : string[], selected?: { [key: string]: boolean } , handleSort:(set:string[]) => void | undefined, counts?:{[key:string]:{currentCount:number, previousCount:number}}, optionalDivs:?(input:any, key:string) => JSX.Element }

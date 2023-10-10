@@ -1,6 +1,7 @@
 import { dummyValue, initialState } from "./initialState";
 import createUser from "./createUser";
 import generateId from "./generateId";
+import randomParameter from "../static/randomParameter";
 
 
 const makeState = (numberOfRows:number): State => {
@@ -21,6 +22,12 @@ const makeState = (numberOfRows:number): State => {
 
     return {
         ...initialState,
+        parameters:{
+            ...initialState.parameters,
+            slice:randomParameter(data, initialState.parameters.slice.pallet, "medium"),
+            ring:randomParameter(data, initialState.parameters.ring.pallet, 'medium'),
+            color:randomParameter(data, initialState.parameters.color.pallet, 'large')
+        },
         data,
         lastChange: { type: 'update_state' }
     }
