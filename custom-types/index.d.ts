@@ -8,7 +8,7 @@ declare type User = {
     chirality: 'left handed' | 'right handed'
     subscriptionTier: 'free' | 'basic' | 'business',
     buildingNumber: 'bld_1' | 'bld_2' | 'bld_3' | 'bld_4' | 'bld_5'
-  };
+};
 
 declare type Arc = {
     path: string;
@@ -28,7 +28,7 @@ declare type Arc = {
     theta?: number;
 }
 
-type Datum = {id:string, x:number, y:number, colorValue:string, shapeValue:string}
+type Datum = {id:string, x:number, y:number, colorValue:string, shapeValue:string, sliceValue:string, ringValue:string}
 
 declare type Margin = {
     top: number,
