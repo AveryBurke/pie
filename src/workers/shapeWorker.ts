@@ -2,6 +2,7 @@ import VornoiMesh from "../static/lloydClass";
 import xmldom from "../domparser_bundle";
 import renderShapes from "../d3/rednerShapes";
 import shapes from "../static/shapes";
+import rotateCoordinates from "../static/rotateCoordinates";
 // import { select } from "d3-selection";// gh-pages can't find this, so I have to import all of d3
 import * as d3 from "d3";
 
@@ -36,6 +37,7 @@ self.addEventListener("message", (eve) => {
     textureW,
     textureH,
     radius,
+    thetas,
     ids
   }: {
     canvas: OffscreenCanvas;
@@ -49,7 +51,19 @@ self.addEventListener("message", (eve) => {
     textureH: number;
     radius: number;
     ids: Datum[];
-    type: "init" | "update_stencil" | "update_offsets" | "render" | "render_in_chunks" | "draw" | "update_ids" | "update_color_scale" | "update_color_values" | "update_data_values";
+    thetas: {[slice:string]:number};
+    type: "init"         | 
+        "update_stencil" | 
+        "update_offsets" | 
+        "render"       | 
+        "render_in_chunks" | 
+        "draw" | 
+        "update_ids" | 
+        "update_color_scale" | 
+        "update_color_values" | 
+        "update_data_values" |
+        "rotate_slice_positions"
+        ;
   } = eve.data;
   switch (type) {
     case "init": {
@@ -128,6 +142,16 @@ self.addEventListener("message", (eve) => {
         shapeRenderer.data(data)
       }
     } break;
+    case "rotate_slice_positions":{
+      if (thetas){
+        data.forEach(d => {
+          const [newX, newY] = rotateCoordinates(d.x, d.y, thetas[d.sliceValue]);
+          d.x = newX;
+          d.y = newY;
+        })
+        shapeRenderer.data(data)
+      }
+    } break;
   }
 });
 
@@ -138,8 +162,8 @@ function handlePositions({payload, keepOpen}:{payload:Float32Array, keepOpen:boo
      * ids and positions are sorted, before they are sent to the shape worker. This has the effect of presisting ids
     */
     const index = Math.floor((i + 1) / 2) + previouslyPayloadLength/2
-    const {id,colorValue,shapeValue} = inputData[index]
-    const d:Datum = {id, x:payload[i], y:payload[i + 1], colorValue, shapeValue}
+    const {id,colorValue,shapeValue, sliceValue, ringValue} = inputData[index]
+    const d:Datum = {id, x:payload[i], y:payload[i + 1], colorValue, shapeValue, sliceValue, ringValue}
     data.push(d)
   }
   previouslyPayloadLength += payload.length;

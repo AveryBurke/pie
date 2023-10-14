@@ -124,7 +124,8 @@ function pizzaChart(): typeof chart {
                 vornoiInitialized = false,
                 currentSectionVerts:{[id:string]:[number,number][]} = {},
                 currentSectionCoords:{[id:string]:[number,number][]} = {},
-                currentIds:Datum[] = []
+                currentIds:Datum[] = [],
+                previousSliceSet:string[] = []
 
             const backgroundWorker = new Worker(new URL("../workers/backgroundWorker", import.meta.url), { type: 'module' })
             // const shapesWorker = new Worker(new URL("../workers/shapesWorker", import.meta.url), { type: 'module' })
@@ -165,7 +166,7 @@ function pizzaChart(): typeof chart {
                     const sortedDatum:Datum[] = data.sort((a, b) => 
                         cmp(sliceSet.indexOf(sliceValue(a)), sliceSet.indexOf(sliceValue(b))) || 
                         cmp(ringSet.indexOf(ringValue(a)), ringSet.indexOf(ringValue(b)))).map(
-                            d => ({id:d[`${dummyValue}_id`], x:0, y:0, colorValue:colorValue(d), shapeValue:'bob'}))
+                            d => ({id:d[`${dummyValue}_id`], x:0, y:0, colorValue:colorValue(d), shapeValue:'bob', sliceValue:sliceValue(d), ringValue:ringValue(d)}))
 
                     shapeWorker.postMessage({type:"update_ids", ids:sortedDatum})
                     for (let i = 0; i < sectionCoords.length; ++i) {  
@@ -217,6 +218,7 @@ function pizzaChart(): typeof chart {
                     type: 'remove_slices'
                 })
                 sliceColorsShouldChange = true
+                previousSliceSet = []
             }
 
             updateSliceSet = function () {
@@ -234,8 +236,20 @@ function pizzaChart(): typeof chart {
                     updateSliceColors()
                     sliceColorsShouldChange = false
                 }
+                const oldSliceAngles = sliceAngles
                 sliceCount = Object.fromEntries(sliceSet.map(slice => [slice, data.filter(d => sliceValue(d) === slice).length]))
                 updateSliceAngles()
+                if (previousSliceSet.length === 0) { 
+                    backgroundWorker.postMessage({type:'get_points'})
+                } else {
+                    const thetas = Object.fromEntries(sliceSet.map(slice => [slice, sliceAngles[slice].endAngle - oldSliceAngles[slice].endAngle]))
+                    shapeWorker.postMessage({type:"rotate_slice_positions",thetas})
+                    data.sort((a, b) => 
+                        cmp(sliceSet.indexOf(sliceValue(a)), sliceSet.indexOf(sliceValue(b))) || 
+                        cmp(ringSet.indexOf(ringValue(a)), ringSet.indexOf(ringValue(b)))).map(
+                            d => colorValue(d))
+                }
+                previousSliceSet = sliceSet
             }
 
             updateRingKey = function () {
@@ -272,12 +286,12 @@ function pizzaChart(): typeof chart {
 
             updateColorSet = function(){
                 //probably send this to the shape worker
-                console.log({colorSet})
+                // console.log({colorSet})
             }
 
             updateColorScale = function(){
                 //probably send this to the shape worker
-                console.log({colorScale})
+                // console.log({colorScale})
                 shapeWorker.postMessage({type:"update_color_scale", colorScale})
             }
 

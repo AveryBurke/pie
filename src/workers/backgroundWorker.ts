@@ -121,7 +121,6 @@ class worker {
                 }, [])
                 acc = [...acc, ...sections]
             }
-            console.log("id set ", this.idSet)
             return acc
         }, [])
 
@@ -176,10 +175,11 @@ class worker {
             this.background.enqueue(startSlices)
         }
         this.sliceAngles = sliceAngles
-        this.getPathPoints()
+        // this.getPathPoints()
         const endSlices: QueueTask = { type: "sections", input: this.generateArcs() }
         this.background.enqueue(endSlices)
         this.background.dequeue()
+        // this.getPathPoints()
     }
 
     removeSlices() {
@@ -231,6 +231,7 @@ class worker {
     }
 
     getPathPoints() {
+        console.log('getting points')
         const { generator} = this
         const sectionCoords: [number, number, number][] = []
         const sectionVerts: number[] = []
@@ -343,5 +344,8 @@ self.addEventListener('message', msg => {
     }
     if (type === 'remove_slices') {
         brw.removeSlices()
+    }
+    if (type === 'get_points'){
+        brw.getPathPoints()
     }
 })
