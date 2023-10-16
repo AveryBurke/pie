@@ -20,12 +20,14 @@ let arcIndexs:number[] = []
 let inputData:Datum[] = []
 let colors:string[] = []
 let previouslyPayloadLength = 0
+let dpi:number = 1
 
 const DOMImplementation = xmldom.DOMImplementation;
 let dom: Document = new DOMImplementation().createDocument()
 
 self.addEventListener("message", (eve) => {
   const {
+    pixelRatio,
     type,
     computeCanvas,
     canvas,
@@ -40,6 +42,7 @@ self.addEventListener("message", (eve) => {
     thetas,
     ids
   }: {
+    pixelRatio: number;
     canvas: OffscreenCanvas;
     colorScale: {[key:string]:string},
     computeCanvas: OffscreenCanvas;
@@ -67,10 +70,12 @@ self.addEventListener("message", (eve) => {
   } = eve.data;
   switch (type) {
     case "init": {
+      console.log(pixelRatio)
       backgroundRadius = radius
       ctx = canvas.getContext("2d")!;
       textureWidth = textureW;
       textureHeight = textureH;
+      dpi = pixelRatio
       init(computeCanvas);
       shapeRenderer.data([])
       shapeRenderer.colorSet(chunkColors)
@@ -176,7 +181,7 @@ function handlePositions({payload, keepOpen}:{payload:Float32Array, keepOpen:boo
 function draw() {
   const elements = d3.select(dom).selectAll<HTMLElement, any>(`custom.shape`)
   ctx.save();
-  ctx.clearRect(0, 0, 1280 * 2, 720 * 2);
+  ctx.clearRect(0, 0, 1280 * dpi, 720 * dpi);
   elements.each(function () {
     const node = d3.select<HTMLElement, Datum>(this).select('path'),
                 xCoord = +node.attr('x'),
@@ -185,7 +190,7 @@ function draw() {
                 ctx.fillStyle = fill;
                 ctx.strokeStyle = "#FFFFFF"
                 ctx.lineWidth = .5
-                ctx.setTransform(2, 0, 0, 2,(xCoord * backgroundRadius) + 1280 , -(yCoord  * backgroundRadius) + 720)
+                ctx.setTransform(dpi, 0, 0, dpi,(xCoord * backgroundRadius) + 1280 , -(yCoord  * backgroundRadius) + 720)
                 ctx.beginPath();
                 // ctx.globalAlpha = +node.attr('opacity') // something's up with opacity
                 const svgPath = node.attr('d')
