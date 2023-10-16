@@ -140,7 +140,8 @@ function pizzaChart(): typeof chart {
             backgroundWorker.postMessage({ type: 'set_ctx', canvas: offscreen }, [offscreen!])
             backgroundWorker.postMessage({ type: 'set_dimensions', w: canvasWidth, h: canvasHeight, r: dpi })
             backgroundWorker.postMessage({ type: 'init_chart', sliceSet, sliceAngles, ringSet, ringHeights, sliceColors })
-            shapeWorker.postMessage({type: "init", computeCanvas:offscreen2, canvas:offscreen3, textureW, textureH, radius:pieDiameter, colorScale},[offscreen2!, offscreen3!])
+            console.log("ratio ", window.devicePixelRatio)
+            shapeWorker.postMessage({type: "init", computeCanvas:offscreen2, canvas:offscreen3, textureW, textureH, radius:pieDiameter, colorScale, pixelRatio:window.devicePixelRatio},[offscreen2!, offscreen3!])
             
             // shapesWorker.postMessage({ type: 'set_ctx', canvas: offscreen2 }, [offscreen2!])
             // shapesWorker.postMessage({ type: 'set_dimensions', w: canvasWidth, h: canvasHeight, r: dpi })
