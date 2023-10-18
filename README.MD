@@ -1,6 +1,6 @@
 # Pie
 ![char](./Screen%20Shot%202023-10-18%20at%202.24.23%20PM.png)
-Pie is a proof of concept data visualization app that simplifies the creation of bullseye plots from tabular data. It is an intuitive and user-friendly alternative to existing tools, like (the one in Excel)[https://www.journalofaccountancy.com/issues/2016/jul/excel-bulls-eye-chart.html].
+Pie is a proof of concept data visualization app that simplifies the creation of bullseye plots from tabular data. It is an intuitive and user-friendly alternative to existing tools, like [the one in Excel](https://www.journalofaccountancy.com/issues/2016/jul/excel-bulls-eye-chart.html).
 
 For a live demo, you can [visit the app here](https://averyburke.github.io/pie/).
 # What is a Bullseye Plot?
