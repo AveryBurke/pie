@@ -44,7 +44,7 @@ This demo uses mocked data generated with [faker.js](https://fakerjs.dev/). You 
 
 1. [Visit the app](https://averyburke.github.io/pie/)
 1. When the page loads, a random data set containing between 30 and 500 users is generated and columns for the chart’s slices, rings and color coding are randomly selected.
-1. To customize the chart, use the control panels on the sidebar:
-  - * **change encoding order**: Rearrange the slices, rings, and color encodings by dragging the items.
-  - * **select new columns**: Use the dropdown menus to choose new columns for these encodings.
-  - * **filter data**: select a column against which to filter the data, using the drop down, and use the check boxes to select values to filter out
+1. * To customize the chart, use the control panels on the sidebar:
+    * **change encoding order**: Rearrange the slices, rings, and color encodings by dragging the items.
+    * **select new columns**: Use the dropdown menus to choose new columns for these encodings.
+    * **filter data**: select a column against which to filter the data, using the drop down, and use the check boxes to select values to filter out
