@@ -25,52 +25,11 @@ let dpi:number = 1
 const DOMImplementation = xmldom.DOMImplementation;
 let dom: Document = new DOMImplementation().createDocument()
 
-self.addEventListener("message", (eve) => {
-  const {
-    pixelRatio,
-    type,
-    computeCanvas,
-    canvas,
-    colorScale,
-    colorValues,
-    stencil,
-    offsets,
-    offsetArcIds,
-    textureW,
-    textureH,
-    radius,
-    thetas,
-    ids
-  }: {
-    pixelRatio: number;
-    canvas: OffscreenCanvas;
-    colorScale: {[key:string]:string},
-    computeCanvas: OffscreenCanvas;
-    colorValues :string[];
-    stencil: number[];
-    offsets: number[];
-    offsetArcIds: number[];
-    textureW: number;
-    textureH: number;
-    radius: number;
-    ids: Datum[];
-    thetas: {[slice:string]:number};
-    type: "init"         | 
-        "update_stencil" | 
-        "update_offsets" | 
-        "render"       | 
-        "render_in_chunks" | 
-        "draw" | 
-        "update_ids" | 
-        "update_color_scale" | 
-        "update_color_values" | 
-        "update_data_values" |
-        "rotate_slice_positions"
-        ;
-  } = eve.data;
+self.addEventListener("message", (eve:MessageEvent<shapeWorkerAction>) => {
+  const {type, payload}  = eve.data
   switch (type) {
     case "init": {
-      console.log(pixelRatio)
+      const {radius, textureW, textureH, pixelRatio, colorScale, canvas, computeCanvas} = payload
       backgroundRadius = radius
       ctx = canvas.getContext("2d")!;
       textureWidth = textureW;
@@ -90,47 +49,35 @@ self.addEventListener("message", (eve) => {
     case "update_stencil":
       {
         if (vornoi) {
-          vornoi.updateStencil(stencil);
+          vornoi.updateStencil(payload.stencil);
           vornoi.renderStencil();
         }
       }
       break;
     case "update_offsets":
       {
-        if (offsets && offsetArcIds && vornoi) {
-          vornoi.updateOffsets(offsets, offsetArcIds);
+        if (vornoi) {
+          vornoi.updateOffsets(payload.offsets, payload.offsetArcIds);
           vornoi.renderVornoi();
         }
       }
       break;
     case "render_in_chunks":
       {
-        if (offsets && offsetArcIds && vornoi){
-          arcIndexs = offsetArcIds;
+        if (vornoi){
+          arcIndexs = payload.offsetArcIds;
           // chunk = 0
           data = []
-          vornoi.renderInChunks(offsets, offsetArcIds)
+          vornoi.renderInChunks(payload.offsets, payload.offsetArcIds)
         }
       }
       break;
-    case "draw":{
-      if (offsets) handlePositions({payload:new Float32Array(offsets), keepOpen:false})
-    }
-    break;
     case "update_ids":{
-      if (ids){
-        // console.log({ids})
-        inputData = ids;
-      }
+        inputData = payload.ids;
     }
     break;
-    case "render":
-      {
-        if (vornoi) vornoi.render();
-      }
-      break;
     case "update_color_values":{
-      if (colorValues){
+      const {colorValues} = payload
         colors = colorValues
         for (let i = 0; i < data.length; i++) {
           if (inputData[i]){
@@ -139,23 +86,19 @@ self.addEventListener("message", (eve) => {
           data[i].colorValue = colorValues[i];
         }
       }
-    }
     break;
     case "update_color_scale":{
-      if (colorScale) {
-        shapeRenderer.colorValues(colorScale)
+        shapeRenderer.colorValues(payload.colorScale)
         shapeRenderer.data(data)
-      }
+      
     } break;
     case "rotate_slice_positions":{
-      if (thetas){
         data.forEach(d => {
-          const [newX, newY] = rotateCoordinates(d.x, d.y, thetas[d.sliceValue]);
+          const [newX, newY] = rotateCoordinates(d.x, d.y, payload.thetas[d.sliceValue]);
           d.x = newX;
           d.y = newY;
         })
         shapeRenderer.data(data)
-      }
     } break;
   }
 });
@@ -209,10 +152,6 @@ function init(canvas: OffscreenCanvas) {
     if (!gl!.getExtension("EXT_color_buffer_float")) {
       console.error("voroni error: color extention does not exist");
     }
-    // let floatExtention = gl.getExtension("EXT_texture_compression_bptc")
-    // if (!floatExtention){
-    //   console.error("compressed floating point texture not avaiable on this machine")
-    // }
     vornoi = new VornoiMesh(gl, textureWidth, textureHeight, 100, handlePositions);
   }
 }
