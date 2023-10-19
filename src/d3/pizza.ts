@@ -148,8 +148,6 @@ function pizzaChart(): typeof chart {
 				[offscreen2!, offscreen3!]
 			);
 
-			// shapesWorker.postMessage({ type: 'set_ctx', canvas: offscreen2 }, [offscreen2!])
-			// shapesWorker.postMessage({ type: 'set_dimensions', w: canvasWidth, h: canvasHeight, r: dpi })
 			backgroundWorker.addEventListener("message", (e) => {
 				const { sectionVerts, sectionCoords }: { sectionVerts: number[]; sectionCoords: [number, number, number][] } = e.data;
 				// console.log({ sectionVerts, sectionCoords})
@@ -190,11 +188,9 @@ function pizzaChart(): typeof chart {
 						offsets.push((coord[0] / pieDiameter) * 2, -((coord[1] / pieDiameter) * 2)); // I think pieDiameter is actually pie radius and so I have to mulitply by 2
 						offsetArcIds.push(coord[2]);
 					}
-					/** trying to prevent redundant calls to render **/
-					if (!deepEqual(sortedDatum, currentIds)) {
-						currentIds = sortedDatum;
-						shapeWorker.postMessage({ type: "render_in_chunks", payload: { offsets, offsetArcIds } });
-					}
+
+					currentIds = sortedDatum;
+					shapeWorker.postMessage({ type: "render_in_chunks", payload: { offsets, offsetArcIds } });
 				}
 			});
 
@@ -369,27 +365,6 @@ function pizzaChart(): typeof chart {
 					type: "update_slice_angles",
 					payload: { sliceAngles },
 				});
-			}
-			function onlyUpdateRingHeights() {
-				function updateRingHeights() {
-					ringHeights = ringSet.reduce<{ [key: string]: { innerRadius: number; outerRadius: number } }>((acc, ring, i) => {
-						const height = ringCount[ring]! * (pieRadius / data.length);
-						if (i === 0) {
-							acc[ring] = { innerRadius: 0, outerRadius: height };
-						} else {
-							const prev = ringSet[i - 1];
-							const { outerRadius: prevOuter } = acc[prev!] || { outerRadius: 0 };
-							const outerRadius = height + prevOuter;
-							acc[ring] = { innerRadius: prevOuter, outerRadius };
-						}
-						return acc;
-					}, {});
-
-					backgroundWorker.postMessage({
-						type: "update_ring_heights",
-						payload: { ringHeights },
-					});
-				}
 			}
 			function cmp(a: number, b: number) {
 				if (a > b) return +1;

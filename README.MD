@@ -48,3 +48,4 @@ This demo uses a mocked data set generated with [faker.js](https://fakerjs.dev/)
     * **change encoding order**: Rearrange the slices, rings, and color encodings by dragging the items in the control panel.
     * **select new columns**: Use the dropdown menus to choose new columns for these encodings.
     * **filter data**: select a column against which to filter the data, using the drop down, and use the check boxes to select values to filter out
+
