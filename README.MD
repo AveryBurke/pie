@@ -37,8 +37,8 @@ This demo uses mocked data generated with [faker.js](https://fakerjs.dev/). You 
 1. **Interactive Customization**: Pie allows you to customize your bullseye plot in various ways, including selecting the columns that determine the chart's slices and rings.
 1. **Data Representation**: The rows of the mock data (representing users) are visualized as circles and sorted into their respective slices and rings using a variation on [Llyod’s algorithm](https://en.wikipedia.org/wiki/Lloyd%27s_algorithm) optimized to run on the your GPU.  This way hundreds of circles can be placed efficiently, sorted and resorted, in real time.
 1. **Color Coding**: You can choose a specific column to determine the color coding of each circle, making it easier to differentiate data points.
-1. **Filtering**: Select a column against which to filter your data, focusing on specific subsets dataset.
-1. **Shuffling**: To aid in explaining the data, you can shuffle the order of the slices, rings, and colors.
+1. **Filtering**: Select a column against which to filter your data, focusing on specific subsets of the dataset.
+1. **Shuffling**: To aid in exploring the data, you can shuffle the order of the slices, rings, and colors
 
 # Getting Started
 
