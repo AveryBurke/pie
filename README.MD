@@ -6,7 +6,7 @@ For a live demo, you can [visit the app here](https://averyburke.github.io/pie/)
 # What is a Bullseye Plot?
 A bullseye plot is a type of data visualization that represents data in concentric rings and slices, making it easy to compare data points across different categories. Pie takes tabular data and automatically generates an interactive bullseye plot that you can easily customize.
 
-This demo uses mocked data generated with [faker.js](https://fakerjs.dev/). You can imagine a spreadsheet of user data that looks like this:
+This demo uses a mocked data set generated with [faker.js](https://fakerjs.dev/). You can imagine a spreadsheet of user data that looks like this:
 
 <table>
   <tr>
