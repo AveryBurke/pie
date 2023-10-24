@@ -112,12 +112,14 @@ function pizzaChart(): typeof chart {
 						return [p.data, { startAngle, endAngle }];
 					})
 				),
+				
+				arcCount: { [arc_id: string]: number } = {},
 				sliceColorsShouldChange = false,
 				vornoiInitialized = false,
 				currentSectionVerts: { [id: string]: [number, number][] } = {},
 				currentSectionCoords: { [id: string]: [number, number][] } = {},
 				currentIds: Datum[] = [],
-				previousSliceSet: string[] = [];
+				previousSliceSet: string[] = sliceSet;
 
 			const backgroundWorker: BackgroundWorker = new Worker(new URL("../workers/backgroundWorker", import.meta.url), { type: "module" });
 			// const shapesWorker = new Worker(new URL("../workers/shapesWorker", import.meta.url), { type: 'module' })
@@ -198,7 +200,7 @@ function pizzaChart(): typeof chart {
 				currentIds = [];
 				const updateSliceCount = Object.fromEntries(sliceSet.map((slice) => [slice, data.filter((d) => sliceValue(d) === slice).length]));
 				const updateRingCount = Object.fromEntries(ringSet.map((ring) => [ring, data.filter((d) => ringValue(d) === ring).length]));
-				const arcCount: { [arc_id: string]: number } = {};
+				arcCount = {};
 				for (let i = 0; i < sliceSet.length; i++) {
 					const slice = sliceSet[i];
 					for (let j = 0; j < ringSet.length; j++) {
@@ -218,10 +220,11 @@ function pizzaChart(): typeof chart {
 					//if slice angles have changed then calling updateRingHeights will update the background as well
 					updateRingHeights();
 				}
+
 				backgroundWorker.postMessage({
-					type:"get_points",
-					payload:{}
-				})
+					type: "get_points",
+					payload: {arcIds:getArcIds()},
+				});
 			};
 
 			updateSliceKey = function () {
@@ -236,7 +239,7 @@ function pizzaChart(): typeof chart {
 
 			updateSliceSet = function () {
 				currentIds = [];
-				const arcCount: { [arc_id: string]: number } = {};
+				arcCount = {};
 				for (let i = 0; i < sliceSet.length; i++) {
 					const slice = sliceSet[i];
 					for (let j = 0; j < ringSet.length; j++) {
@@ -253,7 +256,7 @@ function pizzaChart(): typeof chart {
 				sliceCount = Object.fromEntries(sliceSet.map((slice) => [slice, data.filter((d) => sliceValue(d) === slice).length]));
 				updateSliceAngles();
 				if (previousSliceSet.length === 0) {
-					backgroundWorker.postMessage({ type: "get_points", payload: {} });
+					backgroundWorker.postMessage({ type: "get_points", payload: {arcIds:getArcIds()} });
 				} else {
 					const thetas = Object.fromEntries(sliceSet.map((slice) => [slice, sliceAngles[slice].endAngle - oldSliceAngles[slice].endAngle]));
 					shapeWorker.postMessage({ type: "rotate_slice_positions", payload: { thetas } });
@@ -277,7 +280,7 @@ function pizzaChart(): typeof chart {
 
 			updateRingSet = function () {
 				currentIds = [];
-				const arcCount: { [arc_id: string]: number } = {};
+				arcCount = {};
 				for (let i = 0; i < sliceSet.length; i++) {
 					const slice = sliceSet[i];
 					for (let j = 0; j < ringSet.length; j++) {
@@ -289,9 +292,9 @@ function pizzaChart(): typeof chart {
 				ringCount = Object.fromEntries(ringSet.map((ring) => [ring, data.filter((d) => ringValue(d) === ring).length]));
 				updateRingHeights();
 				backgroundWorker.postMessage({
-					type:"get_points",
-					payload:{}
-				})
+					type: "get_points",
+					payload: {arcIds:getArcIds()},
+				});
 			};
 
 			updateColorKey = function () {
@@ -379,8 +382,21 @@ function pizzaChart(): typeof chart {
 				if (a < b) return -1;
 				return 0;
 			}
+			/**
+			 * 
+			 * @returns {Set<string>} ids for all arcs wtih count > 0 
+			 */
+			function getArcIds():Set<string> {
+				const ids: Set<string> = new Set();
+				for (let i = 0; i < sliceSet.length; i++) {
+					for (let j = 0; j < ringSet.length; j++) {
+						const id = `_${sliceSet[i]}_${ringSet[j]}`;
+						if (arcCount[id] > 0) ids.add(id);
+					}
+				}
+				return ids;
+			}
 			//boot
-
 		});
 	}
 

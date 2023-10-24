@@ -269,7 +269,7 @@ declare type BackgroundWorkerUpdateSliceAngles = BackgroundWorkerMsg<
 	{ sliceAngles: { [slice: string]: { startAngle: number; endAngle: number } } }
 >;
 declare type BackgroundWorkerRemoveSlices = BackgroundWorkerMsg<"remove_slices", {}>;
-declare type BackgroundWorkerGetPoints = BackgroundWorkerMsg<"get_points", {}>;
+declare type BackgroundWorkerGetPoints = BackgroundWorkerMsg<"get_points", {arcIds:Set<string>}>;
 
 declare type BackgroundWorkerAction =
 	| BackgroundWorkerInit

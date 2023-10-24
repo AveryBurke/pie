@@ -237,10 +237,10 @@ class worker {
 	/**
 	 * sectionVerts = triangulation of the arcs.
 	 * sectionCoords = [random x coordinate, random y coordinate, integer id of the containing arc][]
-	 * 
+	 *
 	 * @postMessage {sectionVerts:number[], sectionCoords:[number, number, number][] }
 	 */
-	getPathPoints() {
+	getPathPoints(arcIds: Set<string>) {
 		const { generator } = this;
 		const sectionCoords: [number, number, number][] = [];
 		const sectionVerts: number[] = [];
@@ -248,38 +248,40 @@ class worker {
 		const { idSet, arcCount } = this;
 		arcs.forEach(function (d, i) {
 			//itterate through subsections
-			d.subsections.forEach((sub) => {
-				// triangulate the polygon
-				const path = generator(sub) || "",
-					num_points = 100,
-					points: number[] = [],
-					pathProperties = new svgPathProperties(path),
-					pathLength = pathProperties.getTotalLength();
-				for (let i = 0; i < num_points; ++i) {
-					let { x, y } = pathProperties.getPointAtLength((i * pathLength) / (num_points - 1));
-					points.push(x);
-					points.push(y);
-				}
-				const idIndex = idSet.getIndex(sub.id);
-				const ears = earcut(points); //<--returns the indexes of x coordinates of the triangle vertices in the points array
-				//fetch the coordiantes of the triangle vertices from the points array
-				for (let i = 0; i < ears.length; i++) {
-					const index = ears[i] * 2;
-					sectionVerts.push(points[index], points[index + 1], idIndex);
-				}
-				const { startAngle, endAngle, innerRadius, outerRadius, id } = sub;
-				// const centroid = arc().centroid({startAngle, endAngle, innerRadius, outerRadius})
-				for (let i = 0; i < arcCount[id]; ++i) {
-					const randomClampedR = Math.random() * (outerRadius - innerRadius) + innerRadius,
-						randomClampedTheta = Math.random() * (endAngle - startAngle) + startAngle - Math.PI / 2,
-						x = Math.cos(randomClampedTheta) * randomClampedR,
-						y = Math.sin(randomClampedTheta) * randomClampedR;
-					sectionCoords.push([x, y, idIndex]);
-					// const jitterX = Math.random()
-					// const jitterY = Math.random()
-					// sectionCoords.push(centroid[0] + jitterX, centroid[1] + jitterY, idIndex)
-				}
-			});
+			if (arcIds.has(d.id)) {
+				d.subsections.forEach((sub) => {
+					// triangulate the polygon
+					const path = generator(sub) || "",
+						num_points = 100,
+						points: number[] = [],
+						pathProperties = new svgPathProperties(path),
+						pathLength = pathProperties.getTotalLength();
+					for (let i = 0; i < num_points; ++i) {
+						let { x, y } = pathProperties.getPointAtLength((i * pathLength) / (num_points - 1));
+						points.push(x);
+						points.push(y);
+					}
+					const idIndex = idSet.getIndex(sub.id);
+					const ears = earcut(points); //<--returns the indexes of x coordinates of the triangle vertices in the points array
+					//fetch the coordiantes of the triangle vertices from the points array
+					for (let i = 0; i < ears.length; i++) {
+						const index = ears[i] * 2;
+						sectionVerts.push(points[index], points[index + 1], idIndex);
+					}
+					const { startAngle, endAngle, innerRadius, outerRadius, id } = sub;
+					// const centroid = arc().centroid({startAngle, endAngle, innerRadius, outerRadius})
+					for (let i = 0; i < arcCount[id]; ++i) {
+						const randomClampedR = Math.random() * (outerRadius - innerRadius) + innerRadius,
+							randomClampedTheta = Math.random() * (endAngle - startAngle) + startAngle - Math.PI / 2,
+							x = Math.cos(randomClampedTheta) * randomClampedR,
+							y = Math.sin(randomClampedTheta) * randomClampedR;
+						sectionCoords.push([x, y, idIndex]);
+						// const jitterX = Math.random()
+						// const jitterY = Math.random()
+						// sectionCoords.push(centroid[0] + jitterX, centroid[1] + jitterY, idIndex)
+					}
+				});
+			}
 		});
 		self.postMessage({ sectionVerts, sectionCoords });
 	}
@@ -347,7 +349,7 @@ self.addEventListener("message", (msg: MessageEvent<BackgroundWorkerAction>) => 
 			break;
 		case "get_points":
 			{
-				brw.getPathPoints();
+				brw.getPathPoints(payload.arcIds);
 			}
 			break;
 		default:
