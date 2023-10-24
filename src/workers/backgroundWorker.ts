@@ -217,7 +217,7 @@ class worker {
 		this.ringHeights = ringHeights;
 		this.background.enqueue({ type: "sections", input: this.generateArcs() });
 		this.background.dequeue();
-		this.getPathPoints();
+		// this.getPathPoints();
 	}
 
 	removeRings() {
@@ -234,8 +234,13 @@ class worker {
 		this.ringSet = [];
 	}
 
+	/**
+	 * sectionVerts = triangulation of the arcs.
+	 * sectionCoords = [random x coordinate, random y coordinate, integer id of the containing arc][]
+	 * 
+	 * @postMessage {sectionVerts:number[], sectionCoords:[number, number, number][] }
+	 */
 	getPathPoints() {
-		console.log("getting points");
 		const { generator } = this;
 		const sectionCoords: [number, number, number][] = [];
 		const sectionVerts: number[] = [];

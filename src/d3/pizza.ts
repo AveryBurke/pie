@@ -218,6 +218,10 @@ function pizzaChart(): typeof chart {
 					//if slice angles have changed then calling updateRingHeights will update the background as well
 					updateRingHeights();
 				}
+				backgroundWorker.postMessage({
+					type:"get_points",
+					payload:{}
+				})
 			};
 
 			updateSliceKey = function () {
@@ -284,6 +288,10 @@ function pizzaChart(): typeof chart {
 				backgroundWorker.postMessage({ type: "update_arc_count", payload: { arcCount } });
 				ringCount = Object.fromEntries(ringSet.map((ring) => [ring, data.filter((d) => ringValue(d) === ring).length]));
 				updateRingHeights();
+				backgroundWorker.postMessage({
+					type:"get_points",
+					payload:{}
+				})
 			};
 
 			updateColorKey = function () {
@@ -372,13 +380,7 @@ function pizzaChart(): typeof chart {
 				return 0;
 			}
 			//boot
-			// updateSliceKey()
-			updateSliceSet();
-			// updateRingKey()
-			// updateRingSet()
-			// updateColorKey()
-			// updateColorScale()
-			// updateData()
+
 		});
 	}
 
