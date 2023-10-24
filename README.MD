@@ -24,6 +24,13 @@ This demo uses a mocked data set generated with [faker.js](https://fakerjs.dev/)
     <td>Left Handed</td>
   </tr>
   <tr>
+    <td>Kurt Gödel</td>
+    <td>Incompleteness@thingsProvedByMe.com</td>
+    <td>Free</td>
+    <td>4</td>
+    <td>Right Handed</td>
+  </tr>
+  <tr>
     <td>...</td>
     <td>...</td>
     <td>...</td>
