@@ -14,7 +14,7 @@ const GenericContextProvider = (props: any) => {
 
   const numberOfUsers = getRandomInt(20, 400)
 
-  const [state, dispatch] = useReducer(stateReducer, makeState(numberOfUsers))
+  const [state, dispatch] = useReducer(stateReducer, makeState(300))
   const refChart = useRef<Chart>(pizzaChart())
 
   useEffect(() => { console.log('state ', state) },[state])

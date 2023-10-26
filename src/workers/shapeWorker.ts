@@ -12,24 +12,24 @@ let vornoi: InstanceType<typeof VornoiMesh>;
 let ctx: OffscreenCanvasRenderingContext2D;
 let textureWidth = 0;
 let textureHeight = 0;
-let chunkColors = ['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99','#b15928']
 let backgroundRadius = 0;
 let shapeRenderer = renderShapes()
 let data:Datum[] = []
 let arcIndexs:number[] = []
-let inputData:Datum[] = []
-let colors:string[] = []
-let previouslyPayloadLength = 0
+let previousPositions:number[] = []
+let stagingPositions:number[] = []
 let dpi:number = 1
+let arcIds:Set<string>;
 
 const DOMImplementation = xmldom.DOMImplementation;
 let dom: Document = new DOMImplementation().createDocument()
 
 self.addEventListener("message", (eve:MessageEvent<shapeWorkerAction>) => {
   const {type, payload}  = eve.data
+  console.log({type, payload})
   switch (type) {
     case "init": {
-      const {radius, textureW, textureH, pixelRatio, colorScale, canvas, computeCanvas} = payload
+      const {radius, textureW, textureH, pixelRatio, canvas, computeCanvas} = payload
       backgroundRadius = radius
       ctx = canvas.getContext("2d")!;
       textureWidth = textureW;
@@ -37,10 +37,6 @@ self.addEventListener("message", (eve:MessageEvent<shapeWorkerAction>) => {
       dpi = pixelRatio
       init(computeCanvas);
       shapeRenderer.data([])
-      shapeRenderer.colorSet(chunkColors)
-      shapeRenderer.colorValues(colorScale)
-      shapeRenderer.shapeSet([shapes('circle', 5)])
-      shapeRenderer.shapeValues({"bob":shapes('circle', 5)})
       shapeRenderer.drawShapes(() => draw())
       console.log({d3, shapeRenderer, dom})
       d3.select(dom).call(shapeRenderer)
@@ -54,71 +50,68 @@ self.addEventListener("message", (eve:MessageEvent<shapeWorkerAction>) => {
         }
       }
       break;
-    case "update_offsets":
-      {
-        if (vornoi) {
-          vornoi.updateOffsets(payload.offsets, payload.offsetArcIds);
-          vornoi.renderVornoi();
-        }
-      }
-      break;
     case "render_in_chunks":
       {
         if (vornoi){
           arcIndexs = payload.offsetArcIds;
-          // chunk = 0
-          data = []
+          arcIds = payload.arcIds
+          stagingPositions = [];
+          data = payload.data;
           vornoi.renderInChunks(payload.offsets, payload.offsetArcIds)
         }
       }
       break;
-    case "update_ids":{
-        inputData = payload.ids;
+    case "update_data_without_moving":{
+      console.log({data, payload})
+      data = payload.data;
+      shapeRenderer.data(payload.data)
     }
-    break;
-    case "update_color_values":{
-      const {colorValues} = payload
-        colors = colorValues
-        for (let i = 0; i < data.length; i++) {
-          if (inputData[i]){
-            inputData[i].colorValue = colorValues[i]
-          }
-          data[i].colorValue = colorValues[i];
-        }
-      }
-    break;
-    case "update_color_scale":{
-        shapeRenderer.colorValues(payload.colorScale)
-        shapeRenderer.data(data)
-      
-    } break;
+      break;
     case "rotate_slice_positions":{
         data.forEach(d => {
           const [newX, newY] = rotateCoordinates(d.x, d.y, payload.thetas[d.sliceValue]);
           d.x = newX;
           d.y = newY;
         })
+        const positions = Object.fromEntries(data.map(d => [d.id, [d.x, d.y]]))
+        self.postMessage({positions})
         shapeRenderer.data(data)
     } break;
   }
 });
 
+/**
+ * the vornoi class will processes and return new positions in chunks. this funciton collects the return values into a staging buffer and calls update data when the stream of incoming data is closed
+ * @param param0 the chunk of positions from the voroni class and a flag signaling weather more chunks are to come
+ */
 function handlePositions({payload, keepOpen}:{payload:Float32Array, keepOpen:boolean}) {
-  // console.log({keepOpen, previouslyPayloadLength})
-  for (let i = 0; i < payload.length; i += 2) {
-    /* 
-     * ids and positions are sorted, before they are sent to the shape worker. This has the effect of presisting ids
-    */
-    const index = Math.floor((i + 1) / 2) + previouslyPayloadLength/2
-    const {id,colorValue,shapeValue, sliceValue, ringValue} = inputData[index]
-    const d:Datum = {id, x:payload[i], y:payload[i + 1], colorValue, shapeValue, sliceValue, ringValue}
-    data.push(d)
-  }
-  previouslyPayloadLength += payload.length;
+  stagingPositions = stagingPositions.concat(Array.from(payload))
+  console.log(stagingPositions)
   if (!keepOpen){
-    shapeRenderer.data(data)
-    previouslyPayloadLength = 0;
+    updateData()
   }
+}
+
+/**
+ * apply the positions in the staging buffer to the data and send the updated data to the renderer
+ * @postMessage the new positions by id. The calling function can use these when selectivly changing positions for the data
+ */
+function updateData(){
+  console.log({stagingPositions, previousPositions, data})
+  let stagingPositionIndex = 0,
+    previousPositionIndex = 0
+  for (let i = 0; i < data.length; i++) {
+    const d = data[i];
+    if (d.shouldMove){
+      d.x = stagingPositions[stagingPositionIndex];
+      d.y = stagingPositions[stagingPositionIndex + 1];
+      stagingPositionIndex += 2
+    } 
+  }
+  const positions = Object.fromEntries(data.map(d => [d.id, [d.x, d.y]]))
+  self.postMessage({positions})
+  previousPositions = stagingPositions;
+  shapeRenderer.data(data);
 }
 
 function draw() {

@@ -242,6 +242,7 @@ class worker {
 	 */
 	getPathPoints(arcIds: Set<string>) {
 		const { generator } = this;
+		const arcOrder:{[key:string]:number} = {};
 		const sectionCoords: [number, number, number][] = [];
 		const sectionVerts: number[] = [];
 		const arcs = this.generateArcs(); //<--NOTE: destrcutring the method from "this" causes an error. look into that
@@ -249,6 +250,7 @@ class worker {
 		arcs.forEach(function (d, i) {
 			//itterate through subsections
 			if (arcIds.has(d.id)) {
+				arcOrder[d.id] = i;
 				d.subsections.forEach((sub) => {
 					// triangulate the polygon
 					const path = generator(sub) || "",
@@ -283,7 +285,7 @@ class worker {
 				});
 			}
 		});
-		self.postMessage({ sectionVerts, sectionCoords });
+		self.postMessage({ sectionVerts, sectionCoords, arcOrder });
 	}
 }
 
