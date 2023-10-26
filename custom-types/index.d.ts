@@ -28,7 +28,7 @@ declare type Arc = {
 	theta?: number;
 };
 
-type Datum = { id: string; x: number; y: number; colorValue: string; shapeValue: string; sliceValue: string; ringValue: string };
+type Datum = { id: string; x: number; y: number; colorValue: string; shapeValue: string; sliceValue:string; ringValue:string; shouldMove:boolean };
 
 declare type Margin = {
 	top: number;
@@ -167,17 +167,13 @@ declare type ComponenetPropsType = {
 declare type ShapeWorkerMsgType =
 	| "init"
 	| "update_stencil"
-	| "update_offsets"
-	| "render"
 	| "render_in_chunks"
+	| "update_data_without_moving"
 	| "draw"
-	| "update_ids"
-	| "update_color_scale"
-	| "update_color_values"
 	| "update_data_values"
 	| "rotate_slice_positions";
 
-declare interface ShapeWorkerMsg<M extends ShapeWorkerMsg, P> {
+declare interface ShapeWorkerMsg<M extends ShapeWorkerMsgType, P> {
 	type: M;
 	payload: P;
 }
@@ -192,25 +188,18 @@ declare type ShapeWorkerInit = ShapeWorkerMsg<
 		canvas: OffscreenCanvas;
 		computeCanvas: OffscreenCanvas;
 		pixelRatio: number;
-		colorScale: { [key: string]: string };
 	}
 >;
 
 declare type ShapeWorkerUpdateStencil = ShapeWorkerMsg<"update_stencil", { stencil: number[] }>;
-declare type ShapeWorkerUpdateOffsets = ShapeWorkerMsg<"update_offsets", { offsets: number[]; offsetArcIds: number[] }>;
-declare type ShapeWorkerRenderInChunks = ShapeWorkerMsg<"render_in_chunks", { offsets: number[]; offsetArcIds: number[] }>;
-declare type ShapeWorkerUpdateIds = ShapeWorkerMsg<"update_ids", { ids: Datum[] }>;
-declare type ShapeWorkerUpdateColorScale = ShapeWorkerMsg<"update_color_scale", { colorScale: { [key: string]: string } }>;
-declare type ShapeWorkerUpdateColorValues = ShapeWorkerMsg<"update_color_values", { colorValues: string[] }>;
+declare type ShapeWorkerRenderInChunks = ShapeWorkerMsg<"render_in_chunks", { offsets: number[]; offsetArcIds: number[]; data: Datum[]; arcIds: Set<string> }>;
+declare type ShapeWorkerUpdateDataWithoutMoving = ShapeWorkerMsg<"update_data_without_moving", {data: Datum[]}>;
 declare type ShapeWorkerRotatePositions = ShapeWorkerMsg<"rotate_slice_positions", { thetas: { [key: string]: number } }>;
 declare type shapeWorkerAction =
 	| ShapeWorkerInit
-	| ShapeWorkerUpdateOffsets
 	| ShapeWorkerUpdateStencil
-	| ShapeWorkerUpdateIds
 	| ShapeWorkerRenderInChunks
-	| ShapeWorkerUpdateColorScale
-	| ShapeWorkerUpdateColorValues
+	| ShapeWorkerUpdateDataWithoutMoving
 	| ShapeWorkerRotatePositions;
 
 declare interface ShapeWorker extends Omit<Worker, "postMessage"> {
@@ -269,7 +258,7 @@ declare type BackgroundWorkerUpdateSliceAngles = BackgroundWorkerMsg<
 	{ sliceAngles: { [slice: string]: { startAngle: number; endAngle: number } } }
 >;
 declare type BackgroundWorkerRemoveSlices = BackgroundWorkerMsg<"remove_slices", {}>;
-declare type BackgroundWorkerGetPoints = BackgroundWorkerMsg<"get_points", {arcIds:Set<string>}>;
+declare type BackgroundWorkerGetPoints = BackgroundWorkerMsg<"get_points", { arcIds: Set<string> }>;
 
 declare type BackgroundWorkerAction =
 	| BackgroundWorkerInit

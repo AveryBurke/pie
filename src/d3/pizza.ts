@@ -3,6 +3,9 @@ import { pie } from "d3-shape";
 import colorPallet from "../static/colorPallet";
 import deepEqual from "deep-equal";
 import { dummyValue } from "../static/initialState";
+import shapes from "../static/shapes";
+
+type Accessor = (datum: any) => string;
 
 function pizzaChart(): typeof chart {
 	// All options that should be accessible to caller
@@ -86,9 +89,31 @@ function pizzaChart(): typeof chart {
 				canvasNode3.id = "shapes";
 			}
 
-			let ringValue = (d: any) => d[ringKey],
-				sliceValue = (d: any) => d[sliceKey],
-				colorValue = (d: any) => d[colorKey],
+			/**
+			 *  accessors for the current ring value of a datum, updated with updateRingKey()
+			 *  @param datum an object of unkown shape whose values are all strings
+			 *  @returns {string} the current ring value of the datum
+			 */
+			let ringValue: Accessor = (d: any) => d[ringKey],
+				/**
+				 *  accessors for the current slice value of a datum, updated with updateSliceKey()
+				 *  @param datum an object of unkown shape whose values are all strings
+				 *  @returns {string} the current slice value of the datum
+				 */
+				sliceValue: Accessor = (d: any) => d[sliceKey],
+				/**
+				 *  accessors for the current color value of a datum, updated with updateColorKey()
+				 *  a datum's color value must be used in conjection with a color scale in order to get a proper hex value for the color
+				 *  @param datum an object of unkown shape whose values are all strings
+				 *  @returns {string} the current color value of the datum
+				 */
+				colorValue: Accessor = (d: any) => d[colorKey],
+				/**
+				 *  accessor for the datum's id. Ids are injected into the data before it's passed to the chart. the data feild looks like {...dummyValue_id: id}, where "dummyValue" is a spcial value that is ignored by the visulizations and the react components and id is unique string of 8 characters.
+				 *  @param datum an object of unkown shape whose values are all strings
+				 *  @returns {string}  the datum's unique id, previously assigned by the calling function
+				 */
+				getId: Accessor = (d: any) => d[`${dummyValue}_id`],
 				ringCount = Object.fromEntries(ringSet.map((ring) => [ring, data.filter((d) => ringValue(d) === ring).length])),
 				sliceCount = Object.fromEntries(sliceSet.map((slice) => [slice, data.filter((d) => sliceValue(d) === slice).length])),
 				ringHeights = ringSet.reduce<{ [key: string]: { innerRadius: number; outerRadius: number } }>((acc, ring, i) => {
@@ -112,14 +137,15 @@ function pizzaChart(): typeof chart {
 						return [p.data, { startAngle, endAngle }];
 					})
 				),
-				
 				arcCount: { [arc_id: string]: number } = {},
 				sliceColorsShouldChange = false,
-				vornoiInitialized = false,
 				currentSectionVerts: { [id: string]: [number, number][] } = {},
 				currentSectionCoords: { [id: string]: [number, number][] } = {},
-				currentIds: Datum[] = [],
-				previousSliceSet: string[] = sliceSet;
+				previousSliceSet = sliceSet,
+				previousRingSet = ringSet,
+				arcsToChange: Set<string>,
+				positions: { [id: string]: [number, number] },
+				currentArcOrder: { [id: string]: number };
 
 			const backgroundWorker: BackgroundWorker = new Worker(new URL("../workers/backgroundWorker", import.meta.url), { type: "module" });
 			// const shapesWorker = new Worker(new URL("../workers/shapesWorker", import.meta.url), { type: 'module' })
@@ -143,18 +169,25 @@ function pizzaChart(): typeof chart {
 						textureW,
 						textureH,
 						radius: pieDiameter,
-						colorScale,
 						pixelRatio: window.devicePixelRatio,
 					},
 				},
 				[offscreen2!, offscreen3!]
 			);
-
+			shapeWorker.addEventListener("message", (e) => {
+				if (e.data.positions) {
+					positions = e.data.positions;
+				}
+			});
 			backgroundWorker.addEventListener("message", (e) => {
-				const { sectionVerts, sectionCoords }: { sectionVerts: number[]; sectionCoords: [number, number, number][] } = e.data;
+				const {
+					sectionVerts,
+					sectionCoords,
+					arcOrder,
+				}: { sectionVerts: number[]; sectionCoords: [number, number, number][]; arcOrder: { [id: string]: number } } = e.data;
 				// console.log({ sectionVerts, sectionCoords})
+				currentArcOrder = arcOrder;
 				if (sectionVerts && !deepEqual(sectionVerts, currentSectionVerts)) {
-					// currentSectionVerts = sectionVerts
 					/** this is intended to be an array of vec3s of the form (x, y, arc_id) */
 					const vertices: number[] = [];
 					for (let i = 0; i < sectionVerts.length; i += 3) {
@@ -165,39 +198,37 @@ function pizzaChart(): typeof chart {
 				}
 				if (sectionCoords && !deepEqual(sectionCoords, currentSectionCoords)) {
 					// console.log(sectionCoords,currentSectionCoords)
-					// currentSectionCoords = sectionCoordsa
 					let offsets: number[] = [];
 					let offsetArcIds: number[] = [];
-					sectionCoords.sort((a, b) => cmp(a[2], b[2]) || cmp(a[0], b[0]) || cmp(a[1], b[1]));
 					const sortedDatum: Datum[] = data
-						.sort(
-							(a, b) =>
-								cmp(sliceSet.indexOf(sliceValue(a)), sliceSet.indexOf(sliceValue(b))) || cmp(ringSet.indexOf(ringValue(a)), ringSet.indexOf(ringValue(b)))
-						)
-						.map((d) => ({
-							id: d[`${dummyValue}_id`],
-							x: 0,
-							y: 0,
-							colorValue: colorValue(d),
-							shapeValue: "bob",
-							sliceValue: sliceValue(d),
-							ringValue: ringValue(d),
-						}));
+						.sort((a, b) => currentArcOrder[arcId(a)] - currentArcOrder[arcId(b)])
+						.map((d) => {
+							const shouldMove = arcId(d) in currentArcOrder;
+							const id = getId(d);
+							return {
+								id,
+								// if this datum should be moved then a new position will be asigned by the shape worker
+								// otherwise retain it's previous position
+								x: shouldMove ? 0 : positions[id][0],
+								y: shouldMove ? 0 : positions[id][1],
+								colorValue: colorScale[colorValue(d)],
+								shapeValue: shapes("circle", 5),
+								sliceValue: sliceValue(d),
+								ringValue: ringValue(d),
+								shouldMove,
+							};
+						});
 
-					shapeWorker.postMessage({ type: "update_ids", payload: { ids: sortedDatum } });
 					for (let i = 0; i < sectionCoords.length; ++i) {
 						const coord = sectionCoords[i];
 						offsets.push((coord[0] / pieDiameter) * 2, -((coord[1] / pieDiameter) * 2)); // I think pieDiameter is actually pie radius and so I have to mulitply by 2
 						offsetArcIds.push(coord[2]);
 					}
-
-					currentIds = sortedDatum;
-					shapeWorker.postMessage({ type: "render_in_chunks", payload: { offsets, offsetArcIds } });
+					shapeWorker.postMessage({ type: "render_in_chunks", payload: { offsets, offsetArcIds, arcIds: arcsToChange, data: sortedDatum } });
 				}
 			});
 
 			updateData = function () {
-				currentIds = [];
 				const updateSliceCount = Object.fromEntries(sliceSet.map((slice) => [slice, data.filter((d) => sliceValue(d) === slice).length]));
 				const updateRingCount = Object.fromEntries(ringSet.map((ring) => [ring, data.filter((d) => ringValue(d) === ring).length]));
 				arcCount = {};
@@ -211,19 +242,16 @@ function pizzaChart(): typeof chart {
 				backgroundWorker.postMessage({ type: "update_arc_count", payload: { arcCount } });
 				if (!deepEqual(updateSliceCount, sliceCount)) {
 					sliceCount = updateSliceCount;
-					onlyUpdateSlcieAngles();
+					updateSliceAngles();
 				}
-				//if slice counts have changed, then at least one ring count must also have changed
 				if (!deepEqual(updateRingCount, ringCount)) {
 					ringCount = updateRingCount;
-					// onlyUpdateRingHeights()
-					//if slice angles have changed then calling updateRingHeights will update the background as well
 					updateRingHeights();
 				}
-
+				arcsToChange = getArcIds(sliceSet, ringSet);
 				backgroundWorker.postMessage({
 					type: "get_points",
-					payload: {arcIds:getArcIds()},
+					payload: { arcIds: arcsToChange },
 				});
 			};
 
@@ -238,7 +266,6 @@ function pizzaChart(): typeof chart {
 			};
 
 			updateSliceSet = function () {
-				currentIds = [];
 				arcCount = {};
 				for (let i = 0; i < sliceSet.length; i++) {
 					const slice = sliceSet[i];
@@ -256,7 +283,8 @@ function pizzaChart(): typeof chart {
 				sliceCount = Object.fromEntries(sliceSet.map((slice) => [slice, data.filter((d) => sliceValue(d) === slice).length]));
 				updateSliceAngles();
 				if (previousSliceSet.length === 0) {
-					backgroundWorker.postMessage({ type: "get_points", payload: {arcIds:getArcIds()} });
+					arcsToChange = getArcIds(sliceSet, ringSet);
+					backgroundWorker.postMessage({ type: "get_points", payload: { arcIds: arcsToChange } });
 				} else {
 					const thetas = Object.fromEntries(sliceSet.map((slice) => [slice, sliceAngles[slice].endAngle - oldSliceAngles[slice].endAngle]));
 					shapeWorker.postMessage({ type: "rotate_slice_positions", payload: { thetas } });
@@ -276,10 +304,10 @@ function pizzaChart(): typeof chart {
 					type: "remove_rings",
 					payload: {},
 				});
+				previousRingSet = [];
 			};
 
 			updateRingSet = function () {
-				currentIds = [];
 				arcCount = {};
 				for (let i = 0; i < sliceSet.length; i++) {
 					const slice = sliceSet[i];
@@ -291,32 +319,49 @@ function pizzaChart(): typeof chart {
 				backgroundWorker.postMessage({ type: "update_arc_count", payload: { arcCount } });
 				ringCount = Object.fromEntries(ringSet.map((ring) => [ring, data.filter((d) => ringValue(d) === ring).length]));
 				updateRingHeights();
-				backgroundWorker.postMessage({
-					type: "get_points",
-					payload: {arcIds:getArcIds()},
-				});
+				if (previousRingSet.length === 0) {
+					arcsToChange = getArcIds(sliceSet, ringSet);
+					backgroundWorker.postMessage({
+						type: "get_points",
+						payload: { arcIds: arcsToChange },
+					});
+				} else {
+					//only get triangluation and seeds for arcs in the rings that where just moved
+					const movedRings = ringSet.filter((ring, i) => previousRingSet.indexOf(ring) !== i);
+					console.log({movedRings})
+					arcsToChange = getArcIds(sliceSet, movedRings);
+					backgroundWorker.postMessage({
+						type: "get_points",
+						payload: { arcIds: arcsToChange },
+					});
+				}
+				previousRingSet = ringSet;
 			};
 
 			updateColorKey = function () {
-				//probably send this to the shape worker
 				colorValue = (d: any) => d[colorKey];
-				const colorValues: string[] = data
-					.sort(
-						(a, b) => cmp(sliceSet.indexOf(sliceValue(a)), sliceSet.indexOf(sliceValue(b))) || cmp(ringSet.indexOf(ringValue(a)), ringSet.indexOf(ringValue(b)))
-					)
-					.map((d) => colorValue(d));
-				shapeWorker.postMessage({ type: "update_color_values", payload: { colorValues } });
 			};
 
-			updateColorSet = function () {
-				//probably send this to the shape worker
-				// console.log({colorSet})
-			};
+			updateColorSet = function () {};
 
 			updateColorScale = function () {
-				//probably send this to the shape worker
-				// console.log({colorScale})
-				shapeWorker.postMessage({ type: "update_color_scale", payload: { colorScale } });
+				shapeWorker.postMessage({
+					type: "update_data_without_moving",
+					payload: {
+						data: data
+							.sort((a, b) => currentArcOrder[arcId(a)] - currentArcOrder[arcId(b)])
+							.map((d) => ({
+								id: getId(d),
+								sliceValue: sliceValue(d),
+								ringValue: ringValue(d),
+								colorValue: colorScale[colorValue(d)],
+								shapeValue: shapes("circle", 5),
+								x: positions[getId(d)][0],
+								y: positions[getId(d)][1],
+								shouldMove: false,
+							})),
+					},
+				});
 			};
 
 			// //helper functions
@@ -362,31 +407,18 @@ function pizzaChart(): typeof chart {
 					payload: { ringSet, ringHeights },
 				});
 			}
-			function onlyUpdateSlcieAngles() {
-				(pieGenerator = pie<string>()
-					.value((slice) => sliceCount[slice]!)
-					.sort((a: string, b: string) => sliceSet.indexOf(a) - sliceSet.indexOf(b))),
-					(sliceAngles = Object.fromEntries(
-						pieGenerator(sliceSet).map((p) => {
-							const { startAngle, endAngle } = p;
-							return [p.data, { startAngle, endAngle }];
-						})
-					));
-				backgroundWorker.postMessage({
-					type: "update_slice_angles",
-					payload: { sliceAngles },
-				});
-			}
 			function cmp(a: number, b: number) {
 				if (a > b) return +1;
 				if (a < b) return -1;
 				return 0;
 			}
 			/**
-			 * 
-			 * @returns {Set<string>} ids for all arcs wtih count > 0 
+			 * create ids for all current arcs with arcCount > 0
+			 * @param sliceSet slice values for the arc ids
+			 * @param ringSet ring values for the arc ids
+			 * @returns set of arc ids, of the from _sliceValue_ringValue
 			 */
-			function getArcIds():Set<string> {
+			function getArcIds(sliceSet: string[], ringSet: string[]): Set<string> {
 				const ids: Set<string> = new Set();
 				for (let i = 0; i < sliceSet.length; i++) {
 					for (let j = 0; j < ringSet.length; j++) {
@@ -395,6 +427,14 @@ function pizzaChart(): typeof chart {
 					}
 				}
 				return ids;
+			}
+			/**
+			 * applies the current slice value and ring value accessors to get the id of the arc to which this datum belongs
+			 * @param d an object of unkown shape whose values are strings
+			 * @returns an arc id. these are of the form _sliceValueOfd_ringValueOfd
+			 */
+			function arcId(d: any):string {
+				return `_${sliceValue(d)}_${ringValue(d)}`;
 			}
 			//boot
 		});
