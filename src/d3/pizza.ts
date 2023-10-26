@@ -141,7 +141,6 @@ function pizzaChart(): typeof chart {
 				sliceColorsShouldChange = false,
 				currentSectionVerts: { [id: string]: [number, number][] } = {},
 				currentSectionCoords: { [id: string]: [number, number][] } = {},
-				currentIds: Datum[] = [],
 				previousSliceSet = sliceSet,
 				previousRingSet = ringSet,
 				arcsToChange: Set<string>,
@@ -189,7 +188,6 @@ function pizzaChart(): typeof chart {
 				// console.log({ sectionVerts, sectionCoords})
 				currentArcOrder = arcOrder;
 				if (sectionVerts && !deepEqual(sectionVerts, currentSectionVerts)) {
-					// currentSectionVerts = sectionVerts
 					/** this is intended to be an array of vec3s of the form (x, y, arc_id) */
 					const vertices: number[] = [];
 					for (let i = 0; i < sectionVerts.length; i += 3) {
@@ -200,10 +198,8 @@ function pizzaChart(): typeof chart {
 				}
 				if (sectionCoords && !deepEqual(sectionCoords, currentSectionCoords)) {
 					// console.log(sectionCoords,currentSectionCoords)
-					// currentSectionCoords = sectionCoordsa
 					let offsets: number[] = [];
 					let offsetArcIds: number[] = [];
-					// sectionCoords.sort((a, b) => cmp(a[2], b[2]) || cmp(a[0], b[0]) || cmp(a[1], b[1]));
 					const sortedDatum: Datum[] = data
 						.sort((a, b) => currentArcOrder[arcId(a)] - currentArcOrder[arcId(b)])
 						.map((d) => {
@@ -216,7 +212,7 @@ function pizzaChart(): typeof chart {
 								x: shouldMove ? 0 : positions[id][0],
 								y: shouldMove ? 0 : positions[id][1],
 								colorValue: colorScale[colorValue(d)],
-								shapeValue: shapes('circle', 5),
+								shapeValue: shapes("circle", 5),
 								sliceValue: sliceValue(d),
 								ringValue: ringValue(d),
 								shouldMove,
@@ -228,14 +224,11 @@ function pizzaChart(): typeof chart {
 						offsets.push((coord[0] / pieDiameter) * 2, -((coord[1] / pieDiameter) * 2)); // I think pieDiameter is actually pie radius and so I have to mulitply by 2
 						offsetArcIds.push(coord[2]);
 					}
-
-					currentIds = sortedDatum;
 					shapeWorker.postMessage({ type: "render_in_chunks", payload: { offsets, offsetArcIds, arcIds: arcsToChange, data: sortedDatum } });
 				}
 			});
 
 			updateData = function () {
-				currentIds = [];
 				const updateSliceCount = Object.fromEntries(sliceSet.map((slice) => [slice, data.filter((d) => sliceValue(d) === slice).length]));
 				const updateRingCount = Object.fromEntries(ringSet.map((ring) => [ring, data.filter((d) => ringValue(d) === ring).length]));
 				arcCount = {};
@@ -273,7 +266,6 @@ function pizzaChart(): typeof chart {
 			};
 
 			updateSliceSet = function () {
-				currentIds = [];
 				arcCount = {};
 				for (let i = 0; i < sliceSet.length; i++) {
 					const slice = sliceSet[i];
@@ -316,7 +308,6 @@ function pizzaChart(): typeof chart {
 			};
 
 			updateRingSet = function () {
-				currentIds = [];
 				arcCount = {};
 				for (let i = 0; i < sliceSet.length; i++) {
 					const slice = sliceSet[i];
@@ -335,8 +326,9 @@ function pizzaChart(): typeof chart {
 						payload: { arcIds: arcsToChange },
 					});
 				} else {
-					//only get coordinates for arcs in the rings where just moved
+					//only get triangluation and seeds for arcs in the rings that where just moved
 					const movedRings = ringSet.filter((ring, i) => previousRingSet.indexOf(ring) !== i);
+					console.log({movedRings})
 					arcsToChange = getArcIds(sliceSet, movedRings);
 					backgroundWorker.postMessage({
 						type: "get_points",
@@ -363,7 +355,7 @@ function pizzaChart(): typeof chart {
 								sliceValue: sliceValue(d),
 								ringValue: ringValue(d),
 								colorValue: colorScale[colorValue(d)],
-								shapeValue: shapes('circle', 5),
+								shapeValue: shapes("circle", 5),
 								x: positions[getId(d)][0],
 								y: positions[getId(d)][1],
 								shouldMove: false,
@@ -436,7 +428,12 @@ function pizzaChart(): typeof chart {
 				}
 				return ids;
 			}
-			function arcId(d: any) {
+			/**
+			 * applies the current slice value and ring value accessors to get the id of the arc to which this datum belongs
+			 * @param d an object of unkown shape whose values are strings
+			 * @returns an arc id. these are of the form _sliceValueOfd_ringValueOfd
+			 */
+			function arcId(d: any):string {
 				return `_${sliceValue(d)}_${ringValue(d)}`;
 			}
 			//boot

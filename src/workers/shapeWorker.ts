@@ -1,7 +1,6 @@
 import VornoiMesh from "../static/lloydClass";
 import xmldom from "../domparser_bundle";
 import renderShapes from "../d3/rednerShapes";
-import shapes from "../static/shapes";
 import rotateCoordinates from "../static/rotateCoordinates";
 // import { select } from "d3-selection";// gh-pages can't find this, so I have to import all of d3
 import * as d3 from "d3";
@@ -16,7 +15,6 @@ let backgroundRadius = 0;
 let shapeRenderer = renderShapes()
 let data:Datum[] = []
 let arcIndexs:number[] = []
-let previousPositions:number[] = []
 let stagingPositions:number[] = []
 let dpi:number = 1
 let arcIds:Set<string>;
@@ -26,7 +24,6 @@ let dom: Document = new DOMImplementation().createDocument()
 
 self.addEventListener("message", (eve:MessageEvent<shapeWorkerAction>) => {
   const {type, payload}  = eve.data
-  console.log({type, payload})
   switch (type) {
     case "init": {
       const {radius, textureW, textureH, pixelRatio, canvas, computeCanvas} = payload
@@ -62,7 +59,6 @@ self.addEventListener("message", (eve:MessageEvent<shapeWorkerAction>) => {
       }
       break;
     case "update_data_without_moving":{
-      console.log({data, payload})
       data = payload.data;
       shapeRenderer.data(payload.data)
     }
@@ -86,7 +82,6 @@ self.addEventListener("message", (eve:MessageEvent<shapeWorkerAction>) => {
  */
 function handlePositions({payload, keepOpen}:{payload:Float32Array, keepOpen:boolean}) {
   stagingPositions = stagingPositions.concat(Array.from(payload))
-  console.log(stagingPositions)
   if (!keepOpen){
     updateData()
   }
@@ -97,9 +92,7 @@ function handlePositions({payload, keepOpen}:{payload:Float32Array, keepOpen:boo
  * @postMessage the new positions by id. The calling function can use these when selectivly changing positions for the data
  */
 function updateData(){
-  console.log({stagingPositions, previousPositions, data})
-  let stagingPositionIndex = 0,
-    previousPositionIndex = 0
+  let stagingPositionIndex = 0
   for (let i = 0; i < data.length; i++) {
     const d = data[i];
     if (d.shouldMove){
@@ -110,7 +103,6 @@ function updateData(){
   }
   const positions = Object.fromEntries(data.map(d => [d.id, [d.x, d.y]]))
   self.postMessage({positions})
-  previousPositions = stagingPositions;
   shapeRenderer.data(data);
 }
 
