@@ -7,21 +7,21 @@ import { AsynContext } from "../contexts/GpuContext";
 import useParameterUpdates from "../hooks/useParameterUpdates";
 import useFilterUpdates from "../hooks/useFilterUpdates";
 
-type PropsType = {
-    ringKey: string
-    ringSet: string[]
-    sliceKey: string
-    sliceSet: string[]
-    data: any[]
-}
+// type PropsType = {
+//     ringKey: string
+//     ringSet: string[]
+//     sliceKey: string
+//     sliceSet: string[]
+//     data: any[]
+// }
 
-function doNotReRender(prevProps: PropsType, nextProps: PropsType) {
-    // console.log(' memo is working')
-    const { sliceKey: prevSliceKey, ringKey: prevRingKey } = prevProps
-    const { sliceKey: nextSliceKey, ringKey: nextRingKey } = nextProps
-    // console.log('should rerender: ', !(prevSliceKey === nextSliceKey && prevRingKey === nextRingKey))
-    return prevSliceKey === nextSliceKey && prevRingKey === nextRingKey
-}
+// function doNotReRender(prevProps: PropsType, nextProps: PropsType) {
+//     // console.log(' memo is working')
+//     const { sliceKey: prevSliceKey, ringKey: prevRingKey } = prevProps
+//     const { sliceKey: nextSliceKey, ringKey: nextRingKey } = nextProps
+//     // console.log('should rerender: ', !(prevSliceKey === nextSliceKey && prevRingKey === nextRingKey))
+//     return prevSliceKey === nextSliceKey && prevRingKey === nextRingKey
+// }
 
 const GenericChart = (): JSX.Element => {
     // useCountRerenders('render chart')
@@ -31,7 +31,7 @@ const GenericChart = (): JSX.Element => {
     const [render, setRender] = useState(false)
     const { sidebarState } = useContext(SidebarContext)!
     const { state, refChart } = useContext(GenericContext)!
-    const { data, parameters: { ring, slice, color } } = state!
+    const { data, parameters: { ring, slice, color, shape } } = state!
     const sliceColors = Object.fromEntries(slice.set.map((s, i) => [s, colorPallet[i % colorPallet.length]!]))
 
     useParameterUpdates()
@@ -49,17 +49,19 @@ const GenericChart = (): JSX.Element => {
             if (ring.key) refChart.ringKey(ring.key)
             if (ring.set) refChart.ringSet(ring.set)
             if (color.key) refChart.colorKey(color.key)
-            if (color.set) refChart.colorSet(color.set)
             if (color.scale) refChart.colorScale(color.scale)
+            if (shape.key) refChart.shapeKey(shape.key)
+            if (shape.scale) refChart.shapeScale(shape.scale)
         }
 
-        //inilzie the chart
+        //render the chart
         setRender(true)
     }, []
     )
 
     useLayoutEffect(() => {
         if (render && refChart && select && refDiv && refDiv.current) {
+            //once the chart is initialized bind it to the div
             select(refDiv.current)
                 .call(refChart)
         }

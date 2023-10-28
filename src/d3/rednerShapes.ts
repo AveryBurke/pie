@@ -11,24 +11,14 @@ type Subscriber = (data: any) => void;
 function shapes(): typeof chart {
 	//params
 	let data: Datum[],
-		radius: number,
-		// colorSet: string[],
-		// colorValues:{[key:string]:string},
-		// shapeSet: string[],
-		// shapeValues: { [key: string]: string },
-		// drag:any,
-		boot: boolean,
+		// radius: number,
+		// boot: boolean,
 		subscribers: Subscriber[] = [],
 		subscribe: Subscriber,
 		drawShapes: UpdateHandler,
 		alertSubscribers: UpdateHandler,
 		updateData: UpdateHandler,
 		updateRadius: UpdateHandler;
-	// updateColorSet: UpdateHandler,
-	// updateColorValues:UpdateHandler,
-	// updateShapeSet: UpdateHandler,
-	// updateShapeValues: UpdateHandler,
-	// updateBorderValues: UpdateHandler;
 
 	function chart(selection: d3.Selection<Document, unknown, null, undefined>) {
 		selection.each(function () {
@@ -70,9 +60,9 @@ function shapes(): typeof chart {
 					});
 			};
 
-			updateRadius = function () {
-				updateData();
-			};
+			// updateRadius = function () {
+			// 	updateData();
+			// };
 
 			// updateShapeSet = function () {
 			// 	updateData();
@@ -104,7 +94,6 @@ function shapes(): typeof chart {
 					drawShapes();
 					if (elapsed > 300) t.stop();
 				});
-				// if (!data.every(d => shapeValues[d.shapeValue])) return
 				selection
 					.select("path")
 					.transition()
@@ -161,17 +150,17 @@ function shapes(): typeof chart {
 	// 	return chart;
 	// };
 
-	chart.radius = function (value: number) {
-		if (!arguments.length) return radius;
-		radius = value;
-		if (typeof updateRadius === "function") updateRadius();
-		return chart;
-	};
+	// chart.radius = function (value: number) {
+	// 	if (!arguments.length) return radius;
+	// 	radius = value;
+	// 	if (typeof updateRadius === "function") updateRadius();
+	// 	return chart;
+	// };
 
-	chart.boot = function (value: typeof boot): typeof chart {
-		boot = value;
-		return chart;
-	};
+	// chart.boot = function (value: typeof boot): typeof chart {
+	// 	boot = value;
+	// 	return chart;
+	// };
 
 	chart.subscribe = function (value: Subscriber) {
 		subscribers = [...subscribers, value];

@@ -126,12 +126,12 @@ declare type Section = {
 	subsections: Subsection[];
 };
 
-declare type ParameterType = "ring" | "slice" | "color";
+declare type ParameterType = "ring" | "slice" | "color" | "shape";
 declare type Parameter = {
 	key: string;
 	set: string[];
 	counts: { [key: stirng]: number };
-	pallet: { [key: string]: `#${string}`[] };
+	pallet: { [key: string]: string[] };
 	scale: { [key: string]: string };
 };
 

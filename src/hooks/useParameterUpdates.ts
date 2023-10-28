@@ -52,14 +52,13 @@ const useParameterUpdate = () => {
                     passActionToChart('update_chart_data')
                     break
                 case 'update_state':
-                    // const {data} = state
-                    // dispatch({type:'update_data', payload:data})
                     passActionToChart('update_chart_data')
                     passActionToChart('update_chart_slice_key')
                     passActionToChart('update_chart_slice_set')
                     passActionToChart('update_chart_ring_key')
                     passActionToChart('update_chart_ring_set')
-                    
+                    passActionToChart('update_chart_shape_key')
+                    passActionToChart('update_chart_shape_set')
 
                     break
                 default:
