@@ -19,8 +19,11 @@ function pizzaChart(): typeof chart {
 		ringKey: string,
 		//colors
 		colorKey: string,
-		colorSet: string[],
 		colorScale: { [key: string]: string },
+		//shapes
+		shapeKey: string,
+		shapeSet: string[],
+		shapeScale: { [key: string]: string },
 		//chart dimensions
 		margin: Margin,
 		canvasWidth: number,
@@ -36,7 +39,10 @@ function pizzaChart(): typeof chart {
 		updateRingSet: UpdateHandler,
 		updateColorKey: UpdateHandler,
 		updateColorSet: UpdateHandler,
-		updateColorScale: UpdateHandler;
+		updateColorScale: UpdateHandler,
+		updateShapeKey: UpdateHandler,
+		updateShapeSet: UpdateHandler,
+		updateShapeScale: UpdateHandler;
 
 	function chart(selection: d3.Selection<HTMLDivElement, any, any, any>) {
 		selection.each(function () {
@@ -108,6 +114,13 @@ function pizzaChart(): typeof chart {
 				 *  @returns {string} the current color value of the datum
 				 */
 				colorValue: Accessor = (d: any) => d[colorKey],
+				/**
+				 *  accessors for the current shape value of a datum, updated with updateShapeKey()
+				 *  a datum's shape value must be used in conjection with a shape scale in order to get a proper hex value for the shape
+				 *  @param datum an object of unkown shape whose values are all strings
+				 *  @returns {string} the current shape value of the datum
+				 */
+				shapeValue: Accessor = (d: any) => d[shapeKey],
 				/**
 				 *  accessor for the datum's id. Ids are injected into the data before it's passed to the chart. the data feild looks like {...dummyValue_id: id}, where "dummyValue" is a spcial value that is ignored by the visulizations and the react components and id is unique string of 8 characters.
 				 *  @param datum an object of unkown shape whose values are all strings
@@ -212,7 +225,7 @@ function pizzaChart(): typeof chart {
 								x: shouldMove ? 0 : positions[id][0],
 								y: shouldMove ? 0 : positions[id][1],
 								colorValue: colorScale[colorValue(d)],
-								shapeValue: shapes("circle", 5),
+								shapeValue: shapes(shapeScale[shapeValue(d)] as SymbolName, 5),
 								sliceValue: sliceValue(d),
 								ringValue: ringValue(d),
 								shouldMove,
@@ -328,7 +341,6 @@ function pizzaChart(): typeof chart {
 				} else {
 					//only get triangluation and seeds for arcs in the rings that where just moved
 					const movedRings = ringSet.filter((ring, i) => previousRingSet.indexOf(ring) !== i);
-					console.log({movedRings})
 					arcsToChange = getArcIds(sliceSet, movedRings);
 					backgroundWorker.postMessage({
 						type: "get_points",
@@ -342,26 +354,16 @@ function pizzaChart(): typeof chart {
 				colorValue = (d: any) => d[colorKey];
 			};
 
-			updateColorSet = function () {};
-
 			updateColorScale = function () {
-				shapeWorker.postMessage({
-					type: "update_data_without_moving",
-					payload: {
-						data: data
-							.sort((a, b) => currentArcOrder[arcId(a)] - currentArcOrder[arcId(b)])
-							.map((d) => ({
-								id: getId(d),
-								sliceValue: sliceValue(d),
-								ringValue: ringValue(d),
-								colorValue: colorScale[colorValue(d)],
-								shapeValue: shapes("circle", 5),
-								x: positions[getId(d)][0],
-								y: positions[getId(d)][1],
-								shouldMove: false,
-							})),
-					},
-				});
+				updateDataWithoutMoving();
+			};
+
+			updateShapeKey = function () {
+				shapeValue = (d: any) => d[shapeKey];
+			};
+
+			updateShapeScale = function () {
+				updateDataWithoutMoving();
 			};
 
 			// //helper functions
@@ -413,6 +415,30 @@ function pizzaChart(): typeof chart {
 				return 0;
 			}
 			/**
+			 *  posts a message to the shape worker to update the data without recalculating positions. 
+			 *  Therefor the data is packaged using the current accessors, the current scales and the current positions. 
+			 *  example - update color scale uses applies the latest color scale and passes the data to the shape worker with all the previous values and positions.
+			 */
+			function updateDataWithoutMoving() {
+				shapeWorker.postMessage({
+					type: "update_data_without_moving",
+					payload: {
+						data: data
+							.sort((a, b) => currentArcOrder[arcId(a)] - currentArcOrder[arcId(b)])
+							.map((d) => ({
+								id: getId(d),
+								sliceValue: sliceValue(d),
+								ringValue: ringValue(d),
+								colorValue: colorScale[colorValue(d)],
+								shapeValue: shapes(shapeScale[shapeValue(d)] as SymbolName, 5),
+								x: positions[getId(d)][0],
+								y: positions[getId(d)][1],
+								shouldMove: false,
+							})),
+					},
+				});
+			}
+			/**
 			 * create ids for all current arcs with arcCount > 0
 			 * @param sliceSet slice values for the arc ids
 			 * @param ringSet ring values for the arc ids
@@ -433,7 +459,7 @@ function pizzaChart(): typeof chart {
 			 * @param d an object of unkown shape whose values are strings
 			 * @returns an arc id. these are of the form _sliceValueOfd_ringValueOfd
 			 */
-			function arcId(d: any):string {
+			function arcId(d: any): string {
 				return `_${sliceValue(d)}_${ringValue(d)}`;
 			}
 			//boot
@@ -484,14 +510,48 @@ function pizzaChart(): typeof chart {
 		if (typeof updateColorKey === "function") updateColorKey();
 		return chart;
 	};
-	chart.colorSet = function (value: string[]) {
-		colorSet = value;
-		if (typeof updateColorSet === "function") updateColorSet();
-		return chart;
-	};
+
 	chart.colorScale = function (value: { [key: string]: string }) {
 		colorScale = value;
 		if (typeof updateColorScale === "function") updateColorScale();
+		return chart;
+	};
+
+	//shpaes
+	/**
+	 * sets the shapeKey variable in the innermost scope of the chart.
+	 * The shape key can be thought of as the column header.
+	 * Additionaly calls the shape key update hanlder, if the chart is already initialized.
+	 * @param value the datum feild to determin the shape encoding
+	 * @returns the next stage of the chart
+	 */
+	chart.shapeKey = function (value: string) {
+		shapeKey = value;
+		if (typeof updateShapeKey === "function") updateShapeKey();
+		return chart;
+	};
+	/**
+	 * sets the shapeSet variable in the innermost scope of the chart.
+	 * the shape set can be thought of as the set of unique variables present in the column,
+	 * Additionally calls the shape set update handler, if the chart is already initialized.
+	 * @param value the array of unique values
+	 * @returns the next state of the chart
+	 */
+	chart.shapeSet = function (value: string[]) {
+		shapeSet = value;
+		if (typeof updateShapeSet === "function") updateShapeSet();
+		return chart;
+	};
+	/**
+	 * Sets the shapeScale variable in the innermost scope of the chart.
+	 * The shape scale returns a shape for each value in the shape set. The shape then needs to be passed to the shapes funciton, along with an area value, to get a proper svg path.
+	 * Additionally calls the shape scale update handler, if the chart is already initialized.
+	 * @param value
+	 * @returns
+	 */
+	chart.shapeScale = function (value: { [key: string]: string }) {
+		shapeScale = value;
+		if (typeof updateShapeScale === "function") updateShapeScale();
 		return chart;
 	};
 
