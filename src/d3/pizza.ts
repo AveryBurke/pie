@@ -225,7 +225,7 @@ function pizzaChart(): typeof chart {
 								x: shouldMove ? 0 : positions[id][0],
 								y: shouldMove ? 0 : positions[id][1],
 								colorValue: colorScale[colorValue(d)],
-								shapeValue: shapes("circle", 5),
+								shapeValue: shapes(shapeScale[shapeValue(d)] as SymbolName, 5),
 								sliceValue: sliceValue(d),
 								ringValue: ringValue(d),
 								shouldMove,
