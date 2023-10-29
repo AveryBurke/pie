@@ -152,7 +152,7 @@ class worker {
 
 		queue.enqueue({ type: "sections", input: initialSections });
 
-		select(this.dom).call(
+		select(this.dom).call(	
 			this.background
 				.queue(queue)
 				.generator(arc())

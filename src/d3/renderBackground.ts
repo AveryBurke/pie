@@ -36,6 +36,7 @@ function backgroundRederer(): typeof renderer {
      */
     function renderer(selection: Selection<Document, unknown, null, undefined>) {
         selection.each(function () {
+            //append a an element of type 'custom' to the document.  The draw funciton and the transition function will select children from this container
             const dataContainer = select(this).append('custom')
             //private variables
             let duration = 250,
@@ -69,7 +70,11 @@ function backgroundRederer(): typeof renderer {
                     transitionId = ""
                 }
             }
-
+            /**
+			 * uses d3's general update pattern on all HTML children of calss 'section' in the custom element.
+			 * this results in animated chagnes to the arcs and to their colors
+			 * @see https://observablehq.com/@d3/general-update-pattern
+			 */
             function updateData(sections: Section[]) {
 
                 const dataBinding = dataContainer.selectAll<HTMLElement, Section>("custom.section")
@@ -99,6 +104,10 @@ function backgroundRederer(): typeof renderer {
                     })
             }
 
+            /**
+             * calls the draw callback on every frame of animation
+             * @param selection all children of the custom element with calls 'section'
+             */
             const transition = function (selection: Selection<HTMLElement, Section, BaseType, unknown>) {
                 const t = timer(function (elapsed) {
                     draw();
@@ -135,31 +144,61 @@ function backgroundRederer(): typeof renderer {
         })
     }
 
+    /**
+     * sets the interpolator for this renderer
+     * @param value an interpolator for transition from one svg path to another
+     * @returns a renderer with the interpolator
+     */
     renderer.interpolator = function (value: typeof interpolator) {
         interpolator = value
         return renderer
     }
 
+    /**
+     * sets the path generator that takes raw data and returns a path
+     * @example
+     * // a renderer with d3's arc generator
+     * const background = backgroundRederer().generator(d3.arc())
+     * @param value the path generator
+     * @returns a rednerer with the path generator
+     */
     renderer.generator = function (value: typeof generator) {
         generator = value
         return renderer
     }
-
+    /**
+     * sets the draw function, to be called on every frame of animation
+     * @param value a callback that extracts children from the document and draws them to a canvas
+     * @returns a renderer with the draw callback
+     */
     renderer.draw = function (value: UpdateHandler): typeof renderer {
         draw = value
         return renderer
     }
 
+    /**
+     * sets the renderer's queue. data is then enqueued and dequeued by the caller
+     * @param value a queue
+     * @returns a renderer with the queue
+     */
     renderer.queue = function (value: QueueInterface<QueueTask>) {
         queue = value
         return renderer
     }
-    /** exposes the queue's enqueue method to the calling function */
+    /** 
+     * Puts a task in the queue. Enqueing tasks dose not result in animation. The caller must dequeue for the renderer to processes all the tasks in queue
+     * @params either data to generate intermediate frames of animation, or commands to change the duration of the next animated transition in the queue
+     * @returns a renderer with the task added to the queue
+     */
     renderer.enqueue = function (value: QueueTask) {
         tasks = value
         if (typeof enqueue === 'function') enqueue()
         return renderer
     }
+    /**
+     * Empties the queue and renders the resulting animations
+     * @returns a renderer with an empty queue
+     */
     renderer.dequeue = function () {
         if (typeof dequeue === 'function') dequeue()
         return renderer
