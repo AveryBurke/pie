@@ -6,9 +6,30 @@ import { dummyValue } from "../static/initialState";
 import shapes from "../static/shapes";
 
 type Accessor = (datum: any) => string;
-
+/**
+ * A closure that exposes variables in the outer scope (the current chart state) through setter fucntions.
+ * Once the chart is initialized the setter function will also call a coresponding update handler function that will appropraitely recalulate the current state of the chart.
+ * @example
+ * //return a chart with the corresponding varaibles set
+ * const chart = pizza()
+ * 		.canvasWidth(1280)
+ *      .canvasHeight(720)
+ *      .margin({ top: 120, right: 220, bottom: 0, left: 220 })
+ * 		.data(data)
+ * 		.sliceKey("building_number")
+ * 		.sliceSet(["1", "2", "3"])
+ * 		.sliceColors(["red", "yellow", "green"])
+ * 		.ringKey("subscription_tier")
+ * 		.ringSet(["basic", "free"])
+ * 		.colorKey("birthday")
+ * 		.colorScale({Monday: '#7fc97f', Tuesday:'#beaed4', Wednesday:'#fdc086', Thursday:'#ffff99', Friday:'#386cb0', Saturday:'#f0027f', Sunday:'#bf5b17'})
+ *
+ *  chart.sliceSet((["1", "3", "2"])//<-- changing the slice set after the chart is initilized will call the updateSliceSet() handler, resulting in animation as well as changing the value of the sliceSet varaible in the closure's outer scope
+ *
+ * @returns a chart fuction.
+ */
 function pizzaChart(): typeof chart {
-	// All options that should be accessible to caller
+	// All options that should be accessible to the caller
 	let data: any[],
 		//slices
 		sliceSet: string[],
@@ -31,7 +52,6 @@ function pizzaChart(): typeof chart {
 		//webgpu
 		device: GPUDevice,
 		//update handlers
-		//values that the caller can change after the chart is inilized
 		updateData: UpdateHandler,
 		updateSliceKey: UpdateHandler,
 		updateSliceSet: UpdateHandler,
@@ -44,6 +64,10 @@ function pizzaChart(): typeof chart {
 		updateShapeSet: UpdateHandler,
 		updateShapeScale: UpdateHandler;
 
+	/**
+	 * renders a bullseye chart to a div
+	 * @param selection a d3 selection on an div
+	 */
 	function chart(selection: d3.Selection<HTMLDivElement, any, any, any>) {
 		selection.each(function () {
 			//set up the screen
@@ -241,6 +265,11 @@ function pizzaChart(): typeof chart {
 				}
 			});
 
+			/**
+			 * after the data varaible is reassigned, recalculates all the counts, the slice angles and the ring heights and requests new point positions from
+			 * the background worker
+			 * @internal
+			 */
 			updateData = function () {
 				const updateSliceCount = Object.fromEntries(sliceSet.map((slice) => [slice, data.filter((d) => sliceValue(d) === slice).length]));
 				const updateRingCount = Object.fromEntries(ringSet.map((ring) => [ring, data.filter((d) => ringValue(d) === ring).length]));
@@ -268,6 +297,10 @@ function pizzaChart(): typeof chart {
 				});
 			};
 
+			/**
+			 * after the sliceKey varaible is reassigned, reasinges the slice value accessor function and removes the previous slice set
+			 * @internal
+			 */
 			updateSliceKey = function () {
 				sliceValue = (d: any) => d[sliceKey];
 				backgroundWorker.postMessage({
@@ -275,9 +308,16 @@ function pizzaChart(): typeof chart {
 					payload: {},
 				});
 				sliceColorsShouldChange = true;
+				//clear the previous slice set. this will tell the slice set update handler that the next slice set is new
 				previousSliceSet = [];
 			};
 
+			/**
+			 * after the sliceSet varaible is reassigned, recalculates the arcs count and the slice angles.
+			 * If this is a new slice set, then new poistions are requested for the data; if the existing slice set was shuffled,
+			 * then a change in angle is calulated for each slice and sent to the shape worker to be animated
+			 * @internal
+			 */
 			updateSliceSet = function () {
 				arcCount = {};
 				for (let i = 0; i < sliceSet.length; i++) {
@@ -295,6 +335,7 @@ function pizzaChart(): typeof chart {
 				const oldSliceAngles = sliceAngles;
 				sliceCount = Object.fromEntries(sliceSet.map((slice) => [slice, data.filter((d) => sliceValue(d) === slice).length]));
 				updateSliceAngles();
+				// if the previous slice set is empty, then this is a new slice set
 				if (previousSliceSet.length === 0) {
 					arcsToChange = getArcIds(sliceSet, ringSet);
 					backgroundWorker.postMessage({ type: "get_points", payload: { arcIds: arcsToChange } });
@@ -311,15 +352,26 @@ function pizzaChart(): typeof chart {
 				previousSliceSet = sliceSet;
 			};
 
+			/**
+			 * after the ringKey varaible is reassigned, reasinges the ring value accessor function and removes the previous ring set
+			 * @internal
+			 */
 			updateRingKey = function () {
 				ringValue = (d: any) => d[ringKey];
 				backgroundWorker.postMessage({
 					type: "remove_rings",
 					payload: {},
 				});
+				//clear the previous ring set. this will tell the ring set update hanlder that the next ring set is new
 				previousRingSet = [];
 			};
 
+			/**
+			 * after the ringSet varaible is reassigned, recalculates the arc counts and the ring heights.
+			 * If this is a new ring set, then new poistions are requested for ever arc and every data point; if the existing ring set was shuffled,
+			 * then requests positions for only the arcs in the rings that have moved
+			 * @internal
+			 */
 			updateRingSet = function () {
 				arcCount = {};
 				for (let i = 0; i < sliceSet.length; i++) {
@@ -332,6 +384,7 @@ function pizzaChart(): typeof chart {
 				backgroundWorker.postMessage({ type: "update_arc_count", payload: { arcCount } });
 				ringCount = Object.fromEntries(ringSet.map((ring) => [ring, data.filter((d) => ringValue(d) === ring).length]));
 				updateRingHeights();
+				//if the previous ring set was empty then this is a new ring set
 				if (previousRingSet.length === 0) {
 					arcsToChange = getArcIds(sliceSet, ringSet);
 					backgroundWorker.postMessage({
@@ -350,27 +403,51 @@ function pizzaChart(): typeof chart {
 				previousRingSet = ringSet;
 			};
 
+			/**
+			 * once the colorKey variable is reassigned, reSets the color value accessor funciton
+			 * @internal
+			 */
 			updateColorKey = function () {
 				colorValue = (d: any) => d[colorKey];
 			};
-
+			/**
+			 * once the colorScale variable is reassigned, sends the data with the new color values to the shape worker, without recalulating positions
+			 * @internal
+			 */
 			updateColorScale = function () {
 				updateDataWithoutMoving();
 			};
 
+			/**
+			 * once the shapeKey variable is reassigned, reassign the shape value accessor funciton
+			 * @internal
+			 */
 			updateShapeKey = function () {
 				shapeValue = (d: any) => d[shapeKey];
 			};
 
+			/**
+			 * once the shapeScale variable is reassigned, sends the data with the new shape values to the shape worker, without recalulating positions
+			 * @internal
+			 */
 			updateShapeScale = function () {
 				updateDataWithoutMoving();
 			};
 
-			// //helper functions
+			//helper functions
+
+			/**
+			 * update the slice colors
+			 * @internal
+			 */
 			function updateSliceColors() {
 				const previouslyUsed = Object.keys(sliceColors).length;
 				sliceColors = Object.fromEntries(sliceSet.map((slice, i) => [slice, colorPallet[(i + previouslyUsed) % colorPallet.length]!]));
 			}
+			/**
+			 * calculates slice angles from the current slice count and sends the new data to background worker, resulting in an animated transition
+			 * @internal
+			 */
 			function updateSliceAngles() {
 				(pieGenerator = pie<string>()
 					.value((slice) => sliceCount[slice]!)
@@ -390,6 +467,10 @@ function pizzaChart(): typeof chart {
 					},
 				});
 			}
+			/**
+			 * calculates ring heights from the current ring count and sends the new data to background worker, resulting in an animated transition
+			 * @internal
+			 */
 			function updateRingHeights() {
 				ringHeights = ringSet.reduce<{ [key: string]: { innerRadius: number; outerRadius: number } }>((acc, ring, i) => {
 					const height = ringCount[ring]! * (pieRadius / data.length);
@@ -409,15 +490,22 @@ function pizzaChart(): typeof chart {
 					payload: { ringSet, ringHeights },
 				});
 			}
+
+			/**
+			 * comparator function for multisorting
+			 * @param a number
+			 * @param b number
+			 * @returns 1, 0 or -1
+			 */
 			function cmp(a: number, b: number) {
 				if (a > b) return +1;
 				if (a < b) return -1;
 				return 0;
 			}
 			/**
-			 *  posts a message to the shape worker to update the data without recalculating positions. 
-			 *  Therefor the data is packaged using the current accessors, the current scales and the current positions. 
-			 *  example - update color scale uses applies the latest color scale and passes the data to the shape worker with all the previous values and positions.
+			 *  posts a message to the shape worker to update the data without recalculating positions.
+			 *  Therefor the data is packaged using the current accessors, the current scales and the current positions.
+			 *  @internal
 			 */
 			function updateDataWithoutMoving() {
 				shapeWorker.postMessage({
@@ -443,6 +531,7 @@ function pizzaChart(): typeof chart {
 			 * @param sliceSet slice values for the arc ids
 			 * @param ringSet ring values for the arc ids
 			 * @returns set of arc ids, of the from _sliceValue_ringValue
+			 * @internal
 			 */
 			function getArcIds(sliceSet: string[], ringSet: string[]): Set<string> {
 				const ids: Set<string> = new Set();
@@ -458,6 +547,7 @@ function pizzaChart(): typeof chart {
 			 * applies the current slice value and ring value accessors to get the id of the arc to which this datum belongs
 			 * @param d an object of unkown shape whose values are strings
 			 * @returns an arc id. these are of the form _sliceValueOfd_ringValueOfd
+			 * @internal
 			 */
 			function arcId(d: any): string {
 				return `_${sliceValue(d)}_${ringValue(d)}`;
@@ -466,6 +556,12 @@ function pizzaChart(): typeof chart {
 		});
 	}
 
+	/**
+	 * Sets the data variable
+	 * If the chart is already initilized, then this funciton additionaly calls the data update handler
+	 * @param value an array of homogeneous objects of unkown shape whose values are strings. In a tabular model these are the rows.
+	 * @returns the next stage of the chart
+	 */
 	chart.data = function (value: any[]) {
 		data = value;
 		if (typeof updateData === "function") updateData();
@@ -473,31 +569,59 @@ function pizzaChart(): typeof chart {
 	};
 
 	//slice
+	/**
+	 * Sets the sliceKey varaible. The value must be a feild in the data.  
+	 * If the chart is already initilized, then this funciton additionaly calls the slice key update handler and removes the old slices.
+	 * @param value a key for accessing the slice value from the data. In a tabular model this is the header of the column that will determin the chart's slices
+	 * @returns the next stage of the chart
+	 */
 	chart.sliceKey = function (value: string) {
 		sliceKey = value;
 		if (typeof updateSliceKey === "function") updateSliceKey();
 		return chart;
 	};
 
+	/**
+	 * Sets the sliceSet varaible. There is one slice per member and the order of the array determins order of the slices.
+	 * If the chart is already initilized, then this funciton additionaly calls the slice set update handler, resulting in an animated slice transition.
+	 * @param value an array of the unique slice values. In a tabular model these are the unique values in the column that will determin the chart's slices.
+	 * @returns the next stage of the chart
+	 */
 	chart.sliceSet = function (value: string[]) {
 		sliceSet = value;
 		if (typeof updateSliceSet === "function") updateSliceSet();
 		return chart;
 	};
 
+	/**
+	 * Sets the sliceColor varaible. These are the colors used to differentiate slices, and the color scale to differentiate rings
+	 * @param value an object whose keys are slice values and whose values are color gradient arrays for each slice
+	 * @returns the next stage of the chart
+	 */
 	chart.sliceColors = function (value: { [slice: string]: string[] }) {
 		sliceColors = value;
-		// if (typeof updateSliceColors === 'function') updateSliceColors();
 		return chart;
 	};
 
 	//ring
+	/**
+	 * Sets the ringKey varaible. The value must be a feild in the data.  
+	 * If the chart is already initilized, then this funciton additionaly calls the ring key update handler and removes the old rings.
+	 * @param value a key for accessing the ring value from the data. In a tabular model this is the header of the column that will determin the chart's rings
+	 * @returns the next stage of the chart
+	 */
 	chart.ringKey = function (value: string) {
 		ringKey = value;
 		if (typeof updateRingKey === "function") updateRingKey();
 		return chart;
 	};
 
+	/**
+	 * Sets the ringSet varaible. There is one ring per member and the order of the array determins the order of the rings.
+	 * If the chart is already initilized, then this funciton additionaly calls the ring set update handler, resulting in an animated ring transition.
+	 * @param value an array of the unique ring values.  In a tabular model these are the unique values in the column that will determin the chart's rings.
+	 * @returns the next stage of the chart
+	 */
 	chart.ringSet = function (value: string[]) {
 		ringSet = value;
 		if (typeof updateRingSet === "function") updateRingSet();
@@ -505,24 +629,35 @@ function pizzaChart(): typeof chart {
 	};
 
 	//colors
+	/**
+	 * Sets the colorKey varaible. The value must be a feild in the data.  
+	 * If the chart is already initilized, then this funciton additionaly calls the color key update handler. 
+	 * @param value a key for accessing the color value from the data. In a tabular model this is the header of the column that will determin a color coding for each row
+	 * @returns the next stage of the chart
+	 */
 	chart.colorKey = function (value: string) {
 		colorKey = value;
 		if (typeof updateColorKey === "function") updateColorKey();
 		return chart;
 	};
 
-	chart.colorScale = function (value: { [key: string]: string }) {
-		colorScale = value;
+	/**
+	 * Sets the colorScale variable and chagnes the colors of the data in the chart. 
+	 * If the chart is already initilized, then this funciton additionally calls the color scale update handler.
+	 * @param scale an object whose keys the unique values accessed by the color key and whose values are hex colors. In a tabular model the color scale returns a hex color for each unique value in the column that determins the data's color coding.
+	 * @returns the next state of the chart
+	 */
+	chart.colorScale = function (scale: { [key: string]: string }) {
+		colorScale = scale;
 		if (typeof updateColorScale === "function") updateColorScale();
 		return chart;
 	};
 
 	//shpaes
 	/**
-	 * sets the shapeKey variable in the innermost scope of the chart.
-	 * The shape key can be thought of as the column header.
-	 * Additionaly calls the shape key update hanlder, if the chart is already initialized.
-	 * @param value the datum feild to determin the shape encoding
+	 * Sets the shapeKey varaible. The value must be a feild in the data.  
+	 * If the chart is already initilized, then this funciton additionaly calls the shape key update handler. 
+	 * @param value a key for accessing the shape value from the data. In a tabular model this is the header of the column that will determin a shape coding for each row
 	 * @returns the next stage of the chart
 	 */
 	chart.shapeKey = function (value: string) {
@@ -530,24 +665,12 @@ function pizzaChart(): typeof chart {
 		if (typeof updateShapeKey === "function") updateShapeKey();
 		return chart;
 	};
+
 	/**
-	 * sets the shapeSet variable in the innermost scope of the chart.
-	 * the shape set can be thought of as the set of unique variables present in the column,
-	 * Additionally calls the shape set update handler, if the chart is already initialized.
-	 * @param value the array of unique values
+	 * Sets the shapeScale variable and chagnes the shapes of the data in the chart. 
+	 * If the chart is already initilized, then this funciton additionally calls the shape scale update handler.
+	 * @param scale an object whose keys the unique values accessed by the shape key and whose values are d3 symbol names. In a tabular model the shape scale returns a symbol name for each unique value in the column that determins the data's shape coding.
 	 * @returns the next state of the chart
-	 */
-	chart.shapeSet = function (value: string[]) {
-		shapeSet = value;
-		if (typeof updateShapeSet === "function") updateShapeSet();
-		return chart;
-	};
-	/**
-	 * Sets the shapeScale variable in the innermost scope of the chart.
-	 * The shape scale returns a shape for each value in the shape set. The shape then needs to be passed to the shapes funciton, along with an area value, to get a proper svg path.
-	 * Additionally calls the shape scale update handler, if the chart is already initialized.
-	 * @param value
-	 * @returns
 	 */
 	chart.shapeScale = function (value: { [key: string]: string }) {
 		shapeScale = value;
@@ -556,21 +679,31 @@ function pizzaChart(): typeof chart {
 	};
 
 	//measurements
+	/**
+	 * Sets the chart's margin
+	 * @param value the chart's margin
+	 * @returns the next state of the chart
+	 */
 	chart.margin = function (value: Margin) {
 		margin = value;
 		return chart;
 	};
 
-	chart.margin = function (value: Margin) {
-		margin = value;
-		return chart;
-	};
-
+	/**
+	 * Sets the width of the chart's canvas
+	 * @param value the desired width of the chart's canvas
+	 * @returns 
+	 */
 	chart.canvasWidth = function (value: number) {
 		canvasWidth = value;
 		return chart;
 	};
 
+	/**
+	 * Sets the height of the chart's canvas
+	 * @param value the desired height of the chart's canvas
+	 * @returns 
+	 */
 	chart.canvasHeight = function (value: number) {
 		canvasHeight = value;
 		return chart;

@@ -36,7 +36,9 @@ declare type Margin = {
 	bottom: number;
 	left: number;
 };
-
+/**
+ * updates definitions and calulculations for the next chart state, when its associated varaible has been changed
+ */
 declare type UpdateHandler = () => void;
 
 declare type SymbolName = "circle" | "triangle" | "square" | "diamond" | "star" | "wye" | "cross";

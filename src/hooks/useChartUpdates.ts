@@ -29,9 +29,6 @@ const useChartUpdates = () => {
 				case `update_chart_shape_key`:
 					refChart.shapeKey(state.parameters.shape.key);
 					break;
-				case "update_chart_shape_set":
-					refChart.shapeSet(state.parameters.shape.set);
-					break;
 				case "update_chart_shape_scale":
 					refChart.shapeScale(state.parameters.shape.scale);
 					break;
