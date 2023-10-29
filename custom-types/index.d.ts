@@ -1,5 +1,47 @@
+
+declare type SymbolName = "circle" | "triangle" | "square" | "diamond" | "star" | "wye" | "cross";
+
+/** ****types for the chart**** */
+
+/** the chart is the inner function of a closer. 
+ * it exposes setter methods that change variable values in the outer function and call update handlers in order to change the chart appropriately
+ * @see https://www.toptal.com/d3-js/towards-reusable-d3-js-charts
+ * */
 declare type Chart = ReturnType<typeof import("../src/d3/pizza").pizzaChart>;
 
+/**
+ * used by the chart
+ * @see https://observablehq.com/@d3/margin-convention
+ */
+declare type Margin = {
+	top: number;
+	right: number;
+	bottom: number;
+	left: number;
+};
+/**
+ * used by chart setter methods.
+ * updates definitions and calulculations for the next chart state.
+ */
+declare type UpdateHandler = () => void;
+
+/**
+ * d3 symbol names
+ * used by Shapes.ts
+ * @see https://d3js.org/d3-shape/symbol
+ */
+
+
+/** ***Types for the app state*** 
+ * Each sidebar componenet corresponds to a slice of the app state.
+ * When a component changes the new data is dispatched to a reducer which changes the state object and logs the change it just made using the state's lastChagne feild.
+ * Any changes to the lastChange feild will fire an update hook that then propagates any required further state changes and passes a command to useChartUpdates
+ * where the latest data is indexed from state and passed to the chart.
+*/
+
+/**
+ * state.data is an array of users. Used by makeState.ts; a unique id and a value for each parameter (defined below) is added to each user.
+ */
 declare type User = {
 	birthMonth: "January" | "February" | "March" | "April" | "May" | "June" | "July" | "August" | "September" | "October" | "November" | "December" | "Smarch";
 	birthDay: "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday";
@@ -10,83 +52,59 @@ declare type User = {
 	buildingNumber: "bld_1" | "bld_2" | "bld_3" | "bld_4" | "bld_5";
 };
 
-declare type Arc = {
-	path: string;
-	boarder: [number, number][];
-	centroid: [number, number];
-	nucleus: number[];
-	id: string;
-	arcCount: number;
-	sliceCount: number;
-	ringCount: number;
-	slice: string;
-	ring: string;
-	startAngle: number;
-	endAngle: number;
-	innerRadius: number;
-	outerRadius: number;
-	theta?: number;
-};
-
-type Datum = { id: string; x: number; y: number; colorValue: string; shapeValue: string; sliceValue:string; ringValue:string; shouldMove:boolean };
-
-declare type Margin = {
-	top: number;
-	right: number;
-	bottom: number;
-	left: number;
-};
-/**
- * updates definitions and calulculations for the next chart state, when its associated varaible has been changed
- */
-declare type UpdateHandler = () => void;
-
-declare type SymbolName = "circle" | "triangle" | "square" | "diamond" | "star" | "wye" | "cross";
-
-declare type Msg = "duration" | "sections";
-
-declare type ActionType = "update_parameter_key" | "update_parameter_set" | "update_parameter_scale" | "update_data" | "update_state" | "reset_parameter";
-
+/** used by useChartUpdates.ts */
 declare type ChartAction =
 	| `update_chart_${ParameterType}_key`
 	| `update_chart_${ParameterType}_set`
 	| `update_chart_${ParameterType}_scale`
 	| "update_chart_data";
 
+/** types for filtering  */
+
+/** used by useFilterUpdates; filterReducer and FilterContext */
 declare type FilterActionType = "update_filter_key" | "update_filter_set" | "update_filter_selected" | "reset_filter";
 
+/** the payload of a filter action depends on the type */
 interface FilterAction<A extends FilterActionType, T> {
 	type: A;
 	payload: T;
 }
+/** change the current filter key. in a tabular modle the filter key is the header of the column against which to filter the data */
+type FilterActionUpdateKey = FilterAction<"update_filter_key", { key: string }>;
+/** change the current filter set. in a tabular modle the filter set an array of all the unique values in the column against wich to filter the data */
+type FilterActionUpdateSet = FilterAction<"update_filter_set", { set: string[] }>;
+/** used when selecting or deselecting a filter value */
+type FilterActionUpdateSelected = FilterAction<"update_filter_selected", { selected: { [key: string]: boolean } }>;
+/** reset the filter */
+type FilterActionReset = FilterAction<"reset_filter", { initialState: Filter }>;
 
+declare type FilterDispatch = FilterActionReset | FilterActionUpdateKey | FilterActionUpdateSet | FilterActionUpdateSelected;
+
+/** generic state changes and parameter changes */
+
+/** used by Context, stateReducer and useParameterUpdates */
+type ActionType = "update_parameter_key" | "update_parameter_set" | "update_parameter_scale" | "update_data" | "update_state" | "reset_parameter";
+
+/** the payload of an action depends on the action's type*/
 interface Action<A extends ActionType, T> {
 	type: A;
 	payload: T;
 }
 
-interface LastChargePossibl<A extends ActionType, P> {
-	type: A;
-	parameter?: P;
-}
+/** change the current data array */
+type ActionUpdateData = Action<"update_data", any[]>;
+/** change a given parameter's key. In a tabular model the key is the header of the column assigned this paramter */
+type ActionUpdateParameterKey = Action<"update_parameter_key", { parameter: ParameterType; key: string }>;
+/** change a given parameter's set. In a tabular model the set is the array of unique values found in the column assigned to this parameter */
+type ActionUpdateParameterSet = Action<"update_parameter_set", { parameter: ParameterType; set: string[] }>;
+/** change a given parameter's scale. A scale returns some data for each member of the parameter's set. For instance, a color scale should return a hex color for each member of the color set*/
+type ActionUpdateParameterScale = Action<"update_parameter_scale", { parameter: ParameterType; scale: { [key: string]: string } }>;
+/** change the current state to a complelty new state. */
+type ActionUpdateState = Action<"update_state", State>;
+/** change a given parameter to its initial conditions */
+type ActionResetParameter = Action<"reset_parameter", { parameter: ParameterType; initialState: State }>;
 
-declare type ActionUpdateData = Action<"update_data", any[]>;
-declare type ActionUpdateParameterKey = Action<"update_parameter_key", { parameter: ParameterType; key: string }>;
-declare type ActionUpdateParameterSet = Action<"update_parameter_set", { parameter: ParameterType; set: string[] }>;
-declare type ActionUpdateParameterScale = Action<"update_parameter_scale", { parameter: ParameterType; scale: { [key: string]: string } }>;
-declare type ActionUpdateState = Action<"update_state", State>;
-declare type ActionResetParameter = Action<"reset_parameter", { parameter: ParameterType; initialState: State }>;
-
-declare type FilterActionUpdateKey = FilterAction<"update_filter_key", { key: string }>;
-declare type FilterActionUpdateSet = FilterAction<"update_filter_set", { set: string[] }>;
-declare type FilterActionUpdateSelected = FilterAction<"update_filter_selected", { selected: { [key: string]: boolean } }>;
-declare type FilterActionReset = FilterAction<"reset_filter", { initialState: Filter }>;
-
-type LastChargeParameter = LastChargePossibl<"update_parameter_key" | "update_parameter_set" | "update_parameter_scale" | "reset_parameter", ParameterType>;
-type LastChangeNoParameter = LastChargePossibl<"update_data" | "update_state", null>;
-
-type LastChange = LastChargeParameter | LastChangeNoParameter;
-
+/** used by componenets and by useParameterUpdate */
 declare type Disparcth =
 	| ActionUpdateData
 	| ActionUpdateParameterKey
@@ -95,19 +113,29 @@ declare type Disparcth =
 	| ActionUpdateState
 	| ActionResetParameter;
 
-declare type FilterDispatch = FilterActionReset | FilterActionUpdateKey | FilterActionUpdateSet | FilterActionUpdateSelected;
-
-interface Task<M extends Msg, I> {
-	input: I;
-	type: M;
+/** if a parameter has changed, then it should be logged, otherwise no extra data needs to be logged in the last change feild */
+interface LastChangePossible<A extends ActionType, P> {
+	type: A;
+	parameter?: P;
 }
+type LastChargeParameter = LastChangePossible<"update_parameter_key" | "update_parameter_set" | "update_parameter_scale" | "reset_parameter", ParameterType>;
+type LastChangeNoParameter = LastChangePossible<"update_data" | "update_state", null>;
+type LastChange = LastChargeParameter | LastChangeNoParameter;
 
+/** background renderer types. used by renderBackground */
+
+/**  */
 declare interface QueueInterface<T> {
 	size: () => number;
 	enqueue: (input: T) => void;
 	dequeue: () => T | undefined;
 }
 
+declare type Msg = "duration" | "sections";
+interface Task<M extends Msg, I> {
+	input: I;
+	type: M;
+}
 declare type ChangeDuration = Task<"duration", number>;
 declare type UpdateSections = Task<"sections", Section[]>;
 declare type QueueTask = ChangeDuration | UpdateSections;
@@ -165,22 +193,40 @@ declare type ComponenetPropsType = {
 	optionalDivs: ?((input: any, key: string) => JSX.Element);
 };
 
-/** shape worker types */
+/** Shape worker types. 
+ * The shape worker is the web worker that handles calulating new positions, rendering and animated transitions for the data points 
+ * New positions are calculated with the vornoi module, transitions are hanlded by renderShapes.ts and the shape worker draws the shapes on the canvas
+ */
+
+
+/**
+ * Data used by the shape worker. 
+ * Each feild is exctracted from a user object, by an accessor function, then repackaged as a Datum and then sent to the shape worker though a postMessage event
+ */
+type Datum = { id: string; x: number; y: number; colorValue: string; shapeValue: string; sliceValue:string; ringValue:string; shouldMove:boolean };
+
+/**
+ * used used to post messages to the shape worker
+ */
 declare type ShapeWorkerMsgType =
 	| "init"
 	| "update_stencil"
-	| "render_in_chunks"
+	| "update_positions"
 	| "update_data_without_moving"
 	| "draw"
 	| "update_data_values"
 	| "rotate_slice_positions";
 
-declare interface ShapeWorkerMsg<M extends ShapeWorkerMsgType, P> {
+/**
+ * a shape worker payload depends on the type of the message. Below payloads are conditionaly defined based on message type
+ */
+interface ShapeWorkerMsg<M extends ShapeWorkerMsgType, P> {
 	type: M;
 	payload: P;
 }
 
-declare type ShapeWorkerInit = ShapeWorkerMsg<
+/** post all the information required to iinitialize the shape worker's canvases */
+type ShapeWorkerInit = ShapeWorkerMsg<
 	"init",
 	{
 		textureW: number;
@@ -192,25 +238,38 @@ declare type ShapeWorkerInit = ShapeWorkerMsg<
 		pixelRatio: number;
 	}
 >;
-
-declare type ShapeWorkerUpdateStencil = ShapeWorkerMsg<"update_stencil", { stencil: number[] }>;
-declare type ShapeWorkerRenderInChunks = ShapeWorkerMsg<"render_in_chunks", { offsets: number[]; offsetArcIds: number[]; data: Datum[]; arcIds: Set<string> }>;
-declare type ShapeWorkerUpdateDataWithoutMoving = ShapeWorkerMsg<"update_data_without_moving", {data: Datum[]}>;
-declare type ShapeWorkerRotatePositions = ShapeWorkerMsg<"rotate_slice_positions", { thetas: { [key: string]: number } }>;
+/** post the triangulation of the background polygones */
+type ShapeWorkerUpdateStencil = ShapeWorkerMsg<"update_stencil", { stencil: number[] }>;
+/** post the new seed positions, the ids for the conatianing arcs, the data to be updated and the set of arcs that should change*/
+type ShapeWorkerUpdatePositions = ShapeWorkerMsg<"update_positions", { offsets: number[]; offsetArcIds: number[]; data: Datum[]; arcIds: Set<string> }>;
+/** post just the data to change */
+type ShapeWorkerUpdateDataWithoutMoving = ShapeWorkerMsg<"update_data_without_moving", {data: Datum[]}>;
+/** post an object whose keys are the slices and whose values are the angle by which to rotate each slice */
+type ShapeWorkerRotatePositions = ShapeWorkerMsg<"rotate_slice_positions", { thetas: { [slice: string]: number } }>;
+/**
+ * used when posting messages to the shape worker
+ */
 declare type shapeWorkerAction =
 	| ShapeWorkerInit
 	| ShapeWorkerUpdateStencil
-	| ShapeWorkerRenderInChunks
+	| ShapeWorkerUpdatePositions
 	| ShapeWorkerUpdateDataWithoutMoving
 	| ShapeWorkerRotatePositions;
 
+/**
+ * shape worker type
+ */
 declare interface ShapeWorker extends Omit<Worker, "postMessage"> {
 	postMessage(msg: shapeWorkerAction, transfer?: Transferable[]): void;
 }
 
-/** background worker types */
+/** background worker types.
+ * The background worker manages the background portion of the chart -- the slices, the rings and the arc segments formed by the intersection of the two.
+ * The arc paths and their transitions are handled by renderBackground.ts. The background worker calulates the intermediate arcs required for the transitions, 
+ * draws the resulting transitions to the canvas and returns information required for positioning data points within their containing arcs
 
-declare type BackgroundWorkerMsgType =
+/** used to post messages to the background worker */
+type BackgroundWorkerMsgType =
 	| "set_ctx"
 	| "set_dimensions"
 	| "init_chart"
@@ -223,12 +282,14 @@ declare type BackgroundWorkerMsgType =
 	| "remove_slices"
 	| "get_points";
 
-declare interface BackgroundWorkerMsg<M extends BackgroundWorkerMsgType, P> {
+/** the payload of a background worker message depends on the type of the message */
+interface BackgroundWorkerMsg<M extends BackgroundWorkerMsgType, P> {
 	type: M;
 	payload: P;
 }
 
-declare type BackgroundWorkerInit = BackgroundWorkerMsg<
+
+type BackgroundWorkerInit = BackgroundWorkerMsg<
 	"init_chart",
 	{
 		ringSet: string[];
@@ -239,28 +300,28 @@ declare type BackgroundWorkerInit = BackgroundWorkerMsg<
 	}
 >;
 
-declare type BackgroundWorkerSetCtx = BackgroundWorkerMsg<"set_ctx", { canvas: OffscreenCanvas }>;
-declare type BackgroundWorkerSetDimensions = BackgroundWorkerMsg<"set_dimensions", { w: number; h: number; r: number }>;
-declare type BackgroundWorkerUpdateSliceSet = BackgroundWorkerMsg<
+type BackgroundWorkerSetCtx = BackgroundWorkerMsg<"set_ctx", { canvas: OffscreenCanvas }>;
+type BackgroundWorkerSetDimensions = BackgroundWorkerMsg<"set_dimensions", { w: number; h: number; r: number }>;
+type BackgroundWorkerUpdateSliceSet = BackgroundWorkerMsg<
 	"update_slice_set",
 	{ sliceSet: string[]; sliceAngles: { [slice: string]: { startAngle: number; endAngle: number } }; sliceColors: { [slice: string]: string[] } }
 >;
-declare type BackgroundWorkerUpdateRingSet = BackgroundWorkerMsg<
+type BackgroundWorkerUpdateRingSet = BackgroundWorkerMsg<
 	"update_ring_set",
 	{ ringSet: string[]; ringHeights: { [ring: string]: { innerRadius: number; outerRadius: number } } }
 >;
-declare type BackgroundWorkerRemoveRings = BackgroundWorkerMsg<"remove_rings", {}>;
-declare type BackgroundWorkerUpdateArcCount = BackgroundWorkerMsg<"update_arc_count", { arcCount: { [arc: string]: number } }>;
-declare type BackgroundWorkerUpdateRingHeights = BackgroundWorkerMsg<
+type BackgroundWorkerRemoveRings = BackgroundWorkerMsg<"remove_rings", {}>;
+type BackgroundWorkerUpdateArcCount = BackgroundWorkerMsg<"update_arc_count", { arcCount: { [arc: string]: number } }>;
+type BackgroundWorkerUpdateRingHeights = BackgroundWorkerMsg<
 	"update_ring_heights",
 	{ ringHeights: { [ring: string]: { innerRadius: number; outerRadius: number } } }
 >;
-declare type BackgroundWorkerUpdateSliceAngles = BackgroundWorkerMsg<
+type BackgroundWorkerUpdateSliceAngles = BackgroundWorkerMsg<
 	"update_slice_angles",
 	{ sliceAngles: { [slice: string]: { startAngle: number; endAngle: number } } }
 >;
-declare type BackgroundWorkerRemoveSlices = BackgroundWorkerMsg<"remove_slices", {}>;
-declare type BackgroundWorkerGetPoints = BackgroundWorkerMsg<"get_points", { arcIds: Set<string> }>;
+type BackgroundWorkerRemoveSlices = BackgroundWorkerMsg<"remove_slices", {}>;
+type BackgroundWorkerGetPoints = BackgroundWorkerMsg<"get_points", { arcIds: Set<string> }>;
 
 declare type BackgroundWorkerAction =
 	| BackgroundWorkerInit

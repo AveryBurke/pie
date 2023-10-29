@@ -3,7 +3,22 @@ import { easePolyInOut } from "d3-ease";
 import { timer } from "d3-timer";
 import transition from 'd3-transition' //<--there's some kind of bug in d3 where I have to import transition into the namespace to use select(...).transition()
 
-function pizza(): typeof chart {
+/**
+ * sets the initial conditions of the rendering function
+ * @example
+ * //initilize the background
+ * const background = backgroundRederer()
+ *      .queue(soneQueue)
+		.generator(d3.arc())
+		.interpolator(someInterpolater)
+		.draw(() => someDrawCallback())
+    //then call the background on a document
+    d3.select(document)
+        .call(background)
+    
+ * @returns the render function
+ */
+function backgroundRederer(): typeof renderer {
     let queue: QueueInterface<QueueTask>,
         tasks: QueueTask,
         interpolator: (from: any, to: any) => (t: number) => any,
@@ -11,18 +26,29 @@ function pizza(): typeof chart {
         draw: UpdateHandler,
         dequeue: UpdateHandler,
         enqueue: UpdateHandler
-    function chart(selection: Selection<Document, unknown, null, undefined>) {
+    /**
+     * transitions are appended to the document and then extracted by the calling function and drawn to a canvas, using a callback.
+     * methods for setting and the outer-scope variable are exposed to the calling function.
+     * Once the rednerer is initilized actions are enqueued and dequeued to the renderer. 
+     * The two types of actions are actions that change the duration of the animated transtioins and actions containing the information for intermediate transitiosn.
+     * Enqueuing does not result in a change in animation. The calling function must use the dequeue method, then all the items in the queue are processed in order
+     * @param selection a d3 selection of a document
+     */
+    function renderer(selection: Selection<Document, unknown, null, undefined>) {
         selection.each(function () {
             const dataContainer = select(this).append('custom')
             //private variables
             let duration = 250,
+                /** keeps tack of the current path property associated to the data, for path transitions */
                 current: { [id: string]: any } = {},
                 transitionId = ''
-
+            
+            /** exposes the queue's enqueue method to the calling function */
             enqueue = function () {
                 queue.enqueue(tasks)
             }
-
+            
+             /** exposes the queue's enqueue method to the calling function */
             dequeue = function () {
                 let currentTask = queue.dequeue()
                 if (currentTask) {
@@ -109,36 +135,37 @@ function pizza(): typeof chart {
         })
     }
 
-    chart.interpolator = function (value: typeof interpolator) {
+    renderer.interpolator = function (value: typeof interpolator) {
         interpolator = value
-        return chart
+        return renderer
     }
 
-    chart.generator = function (value: typeof generator) {
+    renderer.generator = function (value: typeof generator) {
         generator = value
-        return chart
+        return renderer
     }
 
-    chart.draw = function (value: UpdateHandler): typeof chart {
+    renderer.draw = function (value: UpdateHandler): typeof renderer {
         draw = value
-        return chart
+        return renderer
     }
 
-    chart.queue = function (value: QueueInterface<QueueTask>) {
+    renderer.queue = function (value: QueueInterface<QueueTask>) {
         queue = value
-        return chart
+        return renderer
     }
-    chart.enqueue = function (value: QueueTask) {
+    /** exposes the queue's enqueue method to the calling function */
+    renderer.enqueue = function (value: QueueTask) {
         tasks = value
         if (typeof enqueue === 'function') enqueue()
-        return chart
+        return renderer
     }
-    chart.dequeue = function () {
+    renderer.dequeue = function () {
         if (typeof dequeue === 'function') dequeue()
-        return chart
+        return renderer
     }
-    return chart
+    return renderer
 }
 
-export default pizza
+export default backgroundRederer
 

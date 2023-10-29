@@ -7,8 +7,7 @@ import shapes from "../static/shapes";
 
 type Accessor = (datum: any) => string;
 /**
- * A closure that exposes variables in the outer scope (the current chart state) through setter fucntions.
- * Once the chart is initialized the setter function will also call a coresponding update handler function that will appropraitely recalulate the current state of the chart.
+ * sets the initial conditions for the chart funciton
  * @example
  * //return a chart with the corresponding varaibles set
  * const chart = pizza()
@@ -24,9 +23,11 @@ type Accessor = (datum: any) => string;
  * 		.colorKey("birthday")
  * 		.colorScale({Monday: '#7fc97f', Tuesday:'#beaed4', Wednesday:'#fdc086', Thursday:'#ffff99', Friday:'#386cb0', Saturday:'#f0027f', Sunday:'#bf5b17'})
  *
- *  chart.sliceSet((["1", "3", "2"])//<-- changing the slice set after the chart is initilized will call the updateSliceSet() handler, resulting in animation as well as changing the value of the sliceSet varaible in the closure's outer scope
+ * // call the chart on a div
+ * d3.select(someDiv)
+ * 	.call(chart)
  *
- * @returns a chart fuction.
+ * @returns the chart fuction.
  */
 function pizzaChart(): typeof chart {
 	// All options that should be accessible to the caller
@@ -65,9 +66,14 @@ function pizzaChart(): typeof chart {
 		updateShapeScale: UpdateHandler;
 
 	/**
-	 * renders a bullseye chart to a div
-	 * @param selection a d3 selection on an div
-	 */
+	* attaches a canvas to the div and renders a chart to the canvas.
+	* methods for changing the chart are exposed through setters.
+	* @example
+	* //change the slice set and show the resulting animation
+	* chart.sliceSet(["2", "3", "1"])
+	* @param selection a d3 selection on an div
+	* @returns a new chart
+	*/
 	function chart(selection: d3.Selection<HTMLDivElement, any, any, any>) {
 		selection.each(function () {
 			//set up the screen
@@ -261,7 +267,7 @@ function pizzaChart(): typeof chart {
 						offsets.push((coord[0] / pieDiameter) * 2, -((coord[1] / pieDiameter) * 2)); // I think pieDiameter is actually pie radius and so I have to mulitply by 2
 						offsetArcIds.push(coord[2]);
 					}
-					shapeWorker.postMessage({ type: "render_in_chunks", payload: { offsets, offsetArcIds, arcIds: arcsToChange, data: sortedDatum } });
+					shapeWorker.postMessage({ type: "update_positions", payload: { offsets, offsetArcIds, arcIds: arcsToChange, data: sortedDatum } });
 				}
 			});
 
@@ -313,9 +319,9 @@ function pizzaChart(): typeof chart {
 			};
 
 			/**
-			 * after the sliceSet varaible is reassigned, recalculates the arcs count and the slice angles.
+			 * after the sliceSet varaible is reassigned, recalculates the arc count and the slice angles.
 			 * If this is a new slice set, then new poistions are requested for the data; if the existing slice set was shuffled,
-			 * then a change in angle is calulated for each slice and sent to the shape worker to be animated
+			 * then a change in angle is calulated for each slice and sent to the shape worker to animated the corresponding roation for each data point
 			 * @internal
 			 */
 			updateSliceSet = function () {
@@ -570,7 +576,7 @@ function pizzaChart(): typeof chart {
 
 	//slice
 	/**
-	 * Sets the sliceKey varaible. The value must be a feild in the data.  
+	 * Sets the sliceKey varaible. The value must be a feild in the data.
 	 * If the chart is already initilized, then this funciton additionaly calls the slice key update handler and removes the old slices.
 	 * @param value a key for accessing the slice value from the data. In a tabular model this is the header of the column that will determin the chart's slices
 	 * @returns the next stage of the chart
@@ -605,7 +611,7 @@ function pizzaChart(): typeof chart {
 
 	//ring
 	/**
-	 * Sets the ringKey varaible. The value must be a feild in the data.  
+	 * Sets the ringKey varaible. The value must be a feild in the data.
 	 * If the chart is already initilized, then this funciton additionaly calls the ring key update handler and removes the old rings.
 	 * @param value a key for accessing the ring value from the data. In a tabular model this is the header of the column that will determin the chart's rings
 	 * @returns the next stage of the chart
@@ -630,8 +636,8 @@ function pizzaChart(): typeof chart {
 
 	//colors
 	/**
-	 * Sets the colorKey varaible. The value must be a feild in the data.  
-	 * If the chart is already initilized, then this funciton additionaly calls the color key update handler. 
+	 * Sets the colorKey varaible. The value must be a feild in the data.
+	 * If the chart is already initilized, then this funciton additionaly calls the color key update handler.
 	 * @param value a key for accessing the color value from the data. In a tabular model this is the header of the column that will determin a color coding for each row
 	 * @returns the next stage of the chart
 	 */
@@ -642,7 +648,7 @@ function pizzaChart(): typeof chart {
 	};
 
 	/**
-	 * Sets the colorScale variable and chagnes the colors of the data in the chart. 
+	 * Sets the colorScale variable and chagnes the colors of the data in the chart.
 	 * If the chart is already initilized, then this funciton additionally calls the color scale update handler.
 	 * @param scale an object whose keys the unique values accessed by the color key and whose values are hex colors. In a tabular model the color scale returns a hex color for each unique value in the column that determins the data's color coding.
 	 * @returns the next state of the chart
@@ -655,8 +661,8 @@ function pizzaChart(): typeof chart {
 
 	//shpaes
 	/**
-	 * Sets the shapeKey varaible. The value must be a feild in the data.  
-	 * If the chart is already initilized, then this funciton additionaly calls the shape key update handler. 
+	 * Sets the shapeKey varaible. The value must be a feild in the data.
+	 * If the chart is already initilized, then this funciton additionaly calls the shape key update handler.
 	 * @param value a key for accessing the shape value from the data. In a tabular model this is the header of the column that will determin a shape coding for each row
 	 * @returns the next stage of the chart
 	 */
@@ -667,7 +673,7 @@ function pizzaChart(): typeof chart {
 	};
 
 	/**
-	 * Sets the shapeScale variable and chagnes the shapes of the data in the chart. 
+	 * Sets the shapeScale variable and chagnes the shapes of the data in the chart.
 	 * If the chart is already initilized, then this funciton additionally calls the shape scale update handler.
 	 * @param scale an object whose keys the unique values accessed by the shape key and whose values are d3 symbol names. In a tabular model the shape scale returns a symbol name for each unique value in the column that determins the data's shape coding.
 	 * @returns the next state of the chart
@@ -692,7 +698,7 @@ function pizzaChart(): typeof chart {
 	/**
 	 * Sets the width of the chart's canvas
 	 * @param value the desired width of the chart's canvas
-	 * @returns 
+	 * @returns
 	 */
 	chart.canvasWidth = function (value: number) {
 		canvasWidth = value;
@@ -702,7 +708,7 @@ function pizzaChart(): typeof chart {
 	/**
 	 * Sets the height of the chart's canvas
 	 * @param value the desired height of the chart's canvas
-	 * @returns 
+	 * @returns
 	 */
 	chart.canvasHeight = function (value: number) {
 		canvasHeight = value;

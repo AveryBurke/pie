@@ -5,31 +5,39 @@ import deepEqual from "deep-equal";
 import { interpolate } from "flubber";
 import { interpolateString } from "d3-interpolate";
 
-type UpdateHandler = () => void;
-type Subscriber = (data: any) => void;
-
-function shapes(): typeof chart {
+/**
+ * Sets the initial conditions function that renders shape data to a document.
+ * @example
+ * //initialize a shape renderer
+ * const shapeRenderer = shapes()
+ * 	.data([])
+ * 	.drawShapes(() => someDrawCallback())
+ *
+ * //call the shape renderer on a document
+ * d3.select(document).call(shapeRenderer)
+ * @returns a shape rendering function
+ */
+function shapes(): typeof renderer {
 	//params
-	let data: Datum[],
-		// radius: number,
-		// boot: boolean,
-		subscribers: Subscriber[] = [],
-		subscribe: Subscriber,
-		drawShapes: UpdateHandler,
-		alertSubscribers: UpdateHandler,
-		updateData: UpdateHandler,
-		updateRadius: UpdateHandler;
-
-	function chart(selection: d3.Selection<Document, unknown, null, undefined>) {
+	let data: Datum[], drawShapes: UpdateHandler, updateData: UpdateHandler;
+	/**
+	 * Manages animated transitions for shapes.
+	 * Methods to update the shapes are exposed through settters.
+	 * @param selection a d3 selection of a document. shape data is appended to this and extracted by the calling funciton, thorugh a draw callback
+	 */
+	function renderer(selection: d3.Selection<Document, unknown, null, undefined>) {
 		selection.each(function () {
-			// const canvas = select(this)
-
+			//add a custom element to the document.
+			//The draw funciotn will extract children from this element, in order to draw the transitions on the canvas.
 			const shapeGroup = select(this).append("custom"),
 				duration = 200;
 			let current: { [id: string]: string } = {};
+			/**
+			 * uses d3's general update pattern on data in the custom element.
+			 * this results in animated chagnes to positions, colors and shapes and removes or adds new data
+			 * @see https://observablehq.com/@d3/general-update-pattern
+			 */
 			updateData = function () {
-				console.log({ data });
-				//remove unused data from table
 				const shapesUpdate = shapeGroup.selectAll<HTMLElement, Datum>("custom.shape").data(data, function (d) {
 					return d.id || select(this).attr("id");
 				});
@@ -60,33 +68,12 @@ function shapes(): typeof chart {
 					});
 			};
 
-			// updateRadius = function () {
-			// 	updateData();
-			// };
-
-			// updateShapeSet = function () {
-			// 	updateData();
-			// };
-
-			// updateShapeValues = function () {
-			// 	data.forEach((d) => (current = { ...current, [d.id]: shapeValues[d.shapeValue] }));
-			// 	if (data.every((d) => shapeValues[d.shapeValue])) {
-			// 		updateData();
-			// 	}
-			// };
-
-			alertSubscribers = function () {
-				// subscribers.forEach(subscriber => {
-				//     subscriber({...table})
-				// })
-			};
-
 			//helper functions
 
-			function updateSubscribers() {
-				alertSubscribers();
-			}
-
+			/**
+			 * call the draw callback on every frame of animation.
+			 * @param selection a selection of the elements to be transitioned
+			 */
 			function transition(selection: d3.Selection<HTMLElement, Datum, any, any>) {
 				//stop timer and clear canvas
 				const t = timer(function (elapsed) {
@@ -107,7 +94,7 @@ function shapes(): typeof chart {
 							to = d.shapeValue;
 						const fromPathCommands = from.match(/[a-zA-Z]/g),
 							toPathCommands = to.match(/[a-zA-Z]/g);
-						//only use flubber if the paths are for different shapes
+						//only use flubber if the paths are for different shapes. if the paths are for different shapes, then the path commands will be different
 						const i = deepEqual(fromPathCommands, toPathCommands, { strict: true }) ? interpolateString(from, to) : interpolate(from, to);
 						return (t: number): string => {
 							return i(t);
@@ -118,61 +105,39 @@ function shapes(): typeof chart {
 						return;
 					})
 					.then(() => {
+						//save the new current path for the next step the the transition
 						selection.each((d) => (current = { ...current, [d.id]: d.shapeValue }));
-						alertSubscribers();
 					});
 			}
 
 			//boot
 		});
 	}
-	//gets and setters
-	chart.data = function (value: Datum[]) {
-		// if (!arguments.length) return data;
+	//setters
+	/**
+	 * sets the data. 
+	 * Ff the shape renderer is already initlized additionaly calls the update hanlder for data which uses d3's general update pattern on data in the custom element.
+	 * this results in animated chagnes to positions, colors and shapes and removes or adds new data
+	 * @see https://observablehq.com/@d3/general-update-pattern
+	 * @param value array of data
+	 * @returns the next state of the shape renderer
+	 */
+	renderer.data = function (value: Datum[]) {
 		data = value;
 		if (typeof updateData === "function") updateData();
-		return chart;
+		return renderer;
 	};
-
-	// chart.shapeValues = function (value: { [key: string]: string }) {
-	// 	if (!arguments.length) return shapeValues;
-	// 	shapeValues = value;
-	// 	if (typeof updateShapeValues === "function") updateShapeValues();
-	// 	return chart;
-	// };
-
-	// type C = typeof chart;
-
-	// chart.shapeSet = function (value: string[]): C | string[] {
-	// 	if (!arguments.length) return shapeSet;
-	// 	shapeSet = value;
-	// 	if (typeof updateShapeSet === "function") updateShapeSet();
-	// 	return chart;
-	// };
-
-	// chart.radius = function (value: number) {
-	// 	if (!arguments.length) return radius;
-	// 	radius = value;
-	// 	if (typeof updateRadius === "function") updateRadius();
-	// 	return chart;
-	// };
-
-	// chart.boot = function (value: typeof boot): typeof chart {
-	// 	boot = value;
-	// 	return chart;
-	// };
-
-	chart.subscribe = function (value: Subscriber) {
-		subscribers = [...subscribers, value];
-		return chart;
-	};
-
-	chart.drawShapes = function (value: UpdateHandler) {
+	/**
+	 * 
+	 * @param value a callback that will select all custom.shape classed elements from the document and draw them to a canvas
+	 * @returns a shape renderer with the update handler set
+	 */
+	renderer.drawShapes = function (value: UpdateHandler) {
 		drawShapes = value;
-		return chart;
+		return renderer;
 	};
 
-	return chart;
+	return renderer;
 }
 
 export default shapes;

@@ -5,8 +5,6 @@ import rotateCoordinates from "../static/rotateCoordinates";
 // import { select } from "d3-selection";// gh-pages can't find this, so I have to import all of d3
 import * as d3 from "d3";
 
-
-
 let vornoi: InstanceType<typeof VornoiMesh>;
 let ctx: OffscreenCanvasRenderingContext2D;
 let textureWidth = 0;
@@ -47,7 +45,7 @@ self.addEventListener("message", (eve:MessageEvent<shapeWorkerAction>) => {
         }
       }
       break;
-    case "render_in_chunks":
+    case "update_positions":
       {
         if (vornoi){
           arcIndexs = payload.offsetArcIds;
