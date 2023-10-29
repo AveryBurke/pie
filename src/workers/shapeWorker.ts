@@ -5,6 +5,16 @@ import rotateCoordinates from "../static/rotateCoordinates";
 // import { select } from "d3-selection";// gh-pages can't find this, so I have to import all of d3
 import * as d3 from "d3";
 
+/**
+ * the shape worker manages the chart's shapes.
+ * It uses an instance of the VornoiMesh class to generate new positions for each point and it packages data to send to the shape renderer.
+ * The renderer uses d3 to create animated transitions which are appended to a document. The the shape worker extacts those transtions from the document and draws them to the canvas
+ * 
+ * The shape worker also returns data to the caller though the postMessage event, for preserving the data's positions.
+ * The return data is an object whose keys are the data ids and whose values are the current coordinates of the respective data points.  
+ * The calling funciton can use this obejct to preserve the current locations of the data points.
+ */
+
 let vornoi: InstanceType<typeof VornoiMesh>;
 let ctx: OffscreenCanvasRenderingContext2D;
 let textureWidth = 0;
@@ -17,6 +27,9 @@ let stagingPositions:number[] = []
 let dpi:number = 1
 let arcIds:Set<string>;
 
+const shapeWorker: ShapeWorker = self as any
+
+/** Web workers can't access the DOM so this a bundled headless DOM API that exposes just enough API surface for d3 functions to use */
 const DOMImplementation = xmldom.DOMImplementation;
 let dom: Document = new DOMImplementation().createDocument()
 
@@ -75,6 +88,7 @@ self.addEventListener("message", (eve:MessageEvent<shapeWorkerAction>) => {
 });
 
 /**
+ * a call back to recive new positions from the vornoi mesh
  * the vornoi class will processes and return new positions in chunks. this funciton collects the return values into a staging buffer and calls update data when the stream of incoming data is closed
  * @param param0 the chunk of positions from the voroni class and a flag signaling weather more chunks are to come
  */
@@ -104,6 +118,9 @@ function updateData(){
   shapeRenderer.data(data);
 }
 
+/**
+ * selects all children of the class "shape" from the custom data container and draws them to the canvas
+ */
 function draw() {
   const elements = d3.select(dom).selectAll<HTMLElement, any>(`custom.shape`)
   ctx.save();

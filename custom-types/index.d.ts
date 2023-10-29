@@ -35,7 +35,7 @@ declare type UpdateHandler = () => void;
 /** ***Types for the app state*** 
  * Each sidebar componenet corresponds to a slice of the app state.
  * When a component changes the new data is dispatched to a reducer which changes the state object and logs the change it just made using the state's lastChagne feild.
- * Any changes to the lastChange feild will fire an update hook that then propagates any required further state changes and passes a command to useChartUpdates
+ * Any changes to the lastChange feild will fire an update hook which propagates any required further state changes and passes a command to useChartUpdates
  * where the latest data is indexed from state and passed to the chart.
 */
 
@@ -80,7 +80,40 @@ type FilterActionReset = FilterAction<"reset_filter", { initialState: Filter }>;
 
 declare type FilterDispatch = FilterActionReset | FilterActionUpdateKey | FilterActionUpdateSet | FilterActionUpdateSelected;
 
-/** generic state changes and parameter changes */
+/** ***generic state changes and parameter changes*** */
+
+/** state types */
+
+/** used by state */
+declare type ParameterType = "ring" | "slice" | "color" | "shape";
+declare type Parameter = {
+	key: string;
+	set: string[];
+	counts: { [key: stirng]: number };
+	pallet: { [key: string]: string[] };
+	scale: { [key: string]: string };
+};
+
+declare type State = {
+	parameters: { [key in ParameterType]: Parameter };
+	data: any[];
+	lastChange: LastChange;
+};
+
+declare type Filter = {
+	key: string;
+	set: string[];
+	selected: { [key: string]: boolean };
+	lastChange: FilterActionType;
+};
+
+/** used by Context, useParameterUpdates and useChartUpdates */
+declare type Values = {
+	state: State;
+	dispatch: React.Dispatch<Disparcth>;
+	refChart: Chart;
+	numberOfUsers: number;
+}
 
 /** used by Context, stateReducer and useParameterUpdates */
 type ActionType = "update_parameter_key" | "update_parameter_set" | "update_parameter_scale" | "update_data" | "update_state" | "reset_parameter";
@@ -122,9 +155,15 @@ type LastChargeParameter = LastChangePossible<"update_parameter_key" | "update_p
 type LastChangeNoParameter = LastChangePossible<"update_data" | "update_state", null>;
 type LastChange = LastChargeParameter | LastChangeNoParameter;
 
-/** background renderer types. used by renderBackground */
 
-/**  */
+
+
+/** ***background renderer types. used by renderBackground** */
+
+/** 
+ * used by the renderBackground and backgroundWorker background woker instantiates the queue and then sets it for the background renderer.
+ * the background renderer exposes the enqueue and dequeue methods. Tasks are enqueued by the worker. Animation won't take place until the worker calls the deqeue method
+*/
 declare interface QueueInterface<T> {
 	size: () => number;
 	enqueue: (input: T) => void;
@@ -136,9 +175,12 @@ interface Task<M extends Msg, I> {
 	input: I;
 	type: M;
 }
+/** changes the duration of the animation */
 declare type ChangeDuration = Task<"duration", number>;
+/** data for the arc paths of at the beginning and ending animation frames */
 declare type UpdateSections = Task<"sections", Section[]>;
 declare type QueueTask = ChangeDuration | UpdateSections;
+//** the arc section will be split into subsections if it contains too much data*/
 declare type Subsection = {
 	id: string;
 	startAngle: number;
@@ -156,35 +198,9 @@ declare type Section = {
 	subsections: Subsection[];
 };
 
-declare type ParameterType = "ring" | "slice" | "color" | "shape";
-declare type Parameter = {
-	key: string;
-	set: string[];
-	counts: { [key: stirng]: number };
-	pallet: { [key: string]: string[] };
-	scale: { [key: string]: string };
-};
 
-declare type State = {
-	parameters: { [key in ParameterType]: Parameter };
-	data: any[];
-	lastChange: LastChange;
-};
-
-declare type Filter = {
-	key: string;
-	set: string[];
-	selected: { [key: string]: boolean };
-	lastChange: FilterActionType;
-};
-
-declare type Values = {
-	state: State;
-	dispatch: React.Dispatch<Disparcth>;
-	refChart: Chart;
-	numberOfUsers: number;
-};
-
+/** types for components  */
+/** used by component wrappers */
 declare type ComponenetPropsType = {
 	initialValues: string[];
 	selected?: { [key: string]: boolean };
@@ -288,7 +304,7 @@ interface BackgroundWorkerMsg<M extends BackgroundWorkerMsgType, P> {
 	payload: P;
 }
 
-
+/** post all the data requred for to initilize the background */
 type BackgroundWorkerInit = BackgroundWorkerMsg<
 	"init_chart",
 	{
@@ -299,28 +315,37 @@ type BackgroundWorkerInit = BackgroundWorkerMsg<
 		sliceColors: { [slice: string]: string[] };
 	}
 >;
-
+/** post the offscreen canvas and set its context */
 type BackgroundWorkerSetCtx = BackgroundWorkerMsg<"set_ctx", { canvas: OffscreenCanvas }>;
+/** set the dimentions of the background and the pixle ratio */
 type BackgroundWorkerSetDimensions = BackgroundWorkerMsg<"set_dimensions", { w: number; h: number; r: number }>;
+/** update the the slice set, the slice angles and the slice colors. the slice angles are proportional to the amount of data in each slice */
 type BackgroundWorkerUpdateSliceSet = BackgroundWorkerMsg<
 	"update_slice_set",
 	{ sliceSet: string[]; sliceAngles: { [slice: string]: { startAngle: number; endAngle: number } }; sliceColors: { [slice: string]: string[] } }
 >;
+/** upate the ring set and the ring heights. the ring heights are proportional to the amount of data in each ring */
 type BackgroundWorkerUpdateRingSet = BackgroundWorkerMsg<
 	"update_ring_set",
 	{ ringSet: string[]; ringHeights: { [ring: string]: { innerRadius: number; outerRadius: number } } }
 >;
+/** remove the curent rings and envoke the special animated transition */
 type BackgroundWorkerRemoveRings = BackgroundWorkerMsg<"remove_rings", {}>;
+/** the arc count is an object whose keys are arc ids of the from _slice_ring and whose values are numbers representing the amount of data contained in the given arc */
 type BackgroundWorkerUpdateArcCount = BackgroundWorkerMsg<"update_arc_count", { arcCount: { [arc: string]: number } }>;
+/** just update the innerRadius and outer radius of each ring */
 type BackgroundWorkerUpdateRingHeights = BackgroundWorkerMsg<
 	"update_ring_heights",
 	{ ringHeights: { [ring: string]: { innerRadius: number; outerRadius: number } } }
 >;
+/** just update the start and end angle of each slice */
 type BackgroundWorkerUpdateSliceAngles = BackgroundWorkerMsg<
 	"update_slice_angles",
 	{ sliceAngles: { [slice: string]: { startAngle: number; endAngle: number } } }
 >;
+/** remove all the current slices and envoke the special animated transition */
 type BackgroundWorkerRemoveSlices = BackgroundWorkerMsg<"remove_slices", {}>;
+/** get seed coordinates for the data conatined in each arc in the acrIds set */
 type BackgroundWorkerGetPoints = BackgroundWorkerMsg<"get_points", { arcIds: Set<string> }>;
 
 declare type BackgroundWorkerAction =
