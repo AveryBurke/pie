@@ -7,22 +7,12 @@ import { AsynContext } from "../contexts/GpuContext";
 import useParameterUpdates from "../hooks/useParameterUpdates";
 import useFilterUpdates from "../hooks/useFilterUpdates";
 
-// type PropsType = {
-//     ringKey: string
-//     ringSet: string[]
-//     sliceKey: string
-//     sliceSet: string[]
-//     data: any[]
-// }
-
-// function doNotReRender(prevProps: PropsType, nextProps: PropsType) {
-//     // console.log(' memo is working')
-//     const { sliceKey: prevSliceKey, ringKey: prevRingKey } = prevProps
-//     const { sliceKey: nextSliceKey, ringKey: nextRingKey } = nextProps
-//     // console.log('should rerender: ', !(prevSliceKey === nextSliceKey && prevRingKey === nextRingKey))
-//     return prevSliceKey === nextSliceKey && prevRingKey === nextRingKey
-// }
-
+/**
+ * initializes the chart from the current state.
+ * the chart is made availble as a ref through the context provider {@link ../contexts/Context}.  
+ * Updates to the chart are handled by {@link ../hooks/useChartUpdates}
+ * @returns a div bound to the chart
+ */
 const GenericChart = (): JSX.Element => {
     // useCountRerenders('render chart')
     // const { sliceKey, sliceSet, ringKey, ringSet, data } = props
@@ -60,6 +50,7 @@ const GenericChart = (): JSX.Element => {
     )
 
     useLayoutEffect(() => {
+        //if the chart is ready to render
         if (render && refChart && select && refDiv && refDiv.current) {
             //once the chart is initialized bind it to the div
             select(refDiv.current)

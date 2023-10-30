@@ -4,6 +4,10 @@ import createCone from "./createCone";
 import vornoiShader from "./shaders/vornoiShader";
 import intermediateShader from "./shaders/intermediateShader";
 import tfShader from "./shaders/transformFeedbackShader";
+
+/**
+ * 
+ */
 export default class VornoiMesh {
   transformFeedback: WebGLTransformFeedback;
   textureWidth: number;

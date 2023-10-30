@@ -1,13 +1,42 @@
-
+/**
+ * names of the d3 symbols. used by shapes.ts
+ * @see https://d3js.org/d3-shape/symbol
+ *   */
 declare type SymbolName = "circle" | "triangle" | "square" | "diamond" | "star" | "wye" | "cross";
 
 /** ****types for the chart**** */
 
-/** the chart is the inner function of a closer. 
- * it exposes setter methods that change variable values in the outer function and call update handlers in order to change the chart appropriately
+/** sets the initial conditions for the chart funciton
+ * @example
+ * //return a chart with the corresponding varaibles set
+ * const chart = pizza()
+ * 		.canvasWidth(1280)
+ *      .canvasHeight(720)
+ *      .margin({ top: 120, right: 220, bottom: 0, left: 220 })
+ * 		.data(data)
+ * 		.sliceKey("building_number")
+ * 		.sliceSet(["1", "2", "3"])
+ * 		.sliceColors(["red", "yellow", "green"])
+ * 		.ringKey("subscription_tier")
+ * 		.ringSet(["basic", "free"])
+ * 		.colorKey("birthday")
+ * 		.colorScale({Monday: '#7fc97f', Tuesday:'#beaed4', Wednesday:'#fdc086', Thursday:'#ffff99', Friday:'#386cb0', Saturday:'#f0027f', Sunday:'#bf5b17'})
+ 
  * @see https://www.toptal.com/d3-js/towards-reusable-d3-js-charts
- * */
-declare type Chart = ReturnType<typeof import("../src/d3/pizza").pizzaChart>;
+ * @returns {Chart} the chart with the initial values set.
+ */
+declare type PizzaChart = typeof import("../src/d3/pizza").pizzaChart;
+
+/**
+ * attaches a canvas to a div and renders a chart to the canvas.
+ * methods for changing the chart are exposed through setters.
+ * @example
+ * //change the slice set and show the resulting animation
+ * chart.sliceSet(["2", "3", "1"])
+ * @param selection a d3 selection on an div
+ * @returns {chart} a new chart with a new value set
+ */
+declare type Chart = ReturnType<PizzaChart>;
 
 /**
  * used by the chart
@@ -25,19 +54,12 @@ declare type Margin = {
  */
 declare type UpdateHandler = () => void;
 
-/**
- * d3 symbol names
- * used by Shapes.ts
- * @see https://d3js.org/d3-shape/symbol
- */
-
-
-/** ***Types for the app state*** 
+/** ***Types for the app state***
  * Each sidebar componenet corresponds to a slice of the app state.
  * When a component changes the new data is dispatched to a reducer which changes the state object and logs the change it just made using the state's lastChagne feild.
  * Any changes to the lastChange feild will fire an update hook which propagates any required further state changes and passes a command to useChartUpdates
  * where the latest data is indexed from state and passed to the chart.
-*/
+ */
 
 /**
  * state.data is an array of users. Used by makeState.ts; a unique id and a value for each parameter (defined below) is added to each user.
@@ -113,7 +135,7 @@ declare type Values = {
 	dispatch: React.Dispatch<Disparcth>;
 	refChart: Chart;
 	numberOfUsers: number;
-}
+};
 
 /** used by Context, stateReducer and useParameterUpdates */
 type ActionType = "update_parameter_key" | "update_parameter_set" | "update_parameter_scale" | "update_data" | "update_state" | "reset_parameter";
@@ -155,15 +177,12 @@ type LastChargeParameter = LastChangePossible<"update_parameter_key" | "update_p
 type LastChangeNoParameter = LastChangePossible<"update_data" | "update_state", null>;
 type LastChange = LastChargeParameter | LastChangeNoParameter;
 
-
-
-
 /** ***background renderer types. used by renderBackground** */
 
-/** 
+/**
  * used by the renderBackground and backgroundWorker background woker instantiates the queue and then sets it for the background renderer.
  * the background renderer exposes the enqueue and dequeue methods. Tasks are enqueued by the worker. Animation won't take place until the worker calls the deqeue method
-*/
+ */
 declare interface QueueInterface<T> {
 	size: () => number;
 	enqueue: (input: T) => void;
@@ -198,28 +217,52 @@ declare type Section = {
 	subsections: Subsection[];
 };
 
+/** ***types for components***  */
 
-/** types for components  */
 /** used by component wrappers */
-declare type ComponenetPropsType = {
+declare interface ComponenetPropsType {
 	initialValues: string[];
 	selected?: { [key: string]: boolean };
 	handleSort: (set: string[]) => void | undefined;
 	counts?: { [key: string]: { currentCount: number; previousCount: number } };
 	optionalDivs: ?((input: any, key: string) => JSX.Element);
-};
+}
+/** used by sidebar parameter component wrapper */
+declare interface SidebarComponentWrapperProps {
+	currentKey: string;
+	title: string;
+	options: { value: string; label: string }[];
+	ControlPanel: (props: ComponenetPropsType) => JSX.Element;
+	props: ComponenetPropsType;
+	handleChange: (input: string) => void;
+	handleReset: (input: void) => void;
+	optionalDivs?: (input: any, key: string) => JSX.Element;
+}
+/** used by sidebar parameter componenets. create divs alongside the controle pannel, as a guid for the encodings */
+declare type ScaleGenerator = (scale: { [value: string]: string }) => (value: string, key: string) => JSX.Element;
+/** used by sidebar parameter component */
+declare interface SidebarParameterComponentProps {
+	parameter: ParameterType;
+	scaleGenerator?: ScaleGenerator;
+}
+/** use by SidebarSelectabe.ts. 
+ * an array of values, to create the initial divs, an object representing which checkboxes are checked and a callback that takes the next checked state*/
+declare interface SelectableProbs {
+	initialValues: string[];
+	selected: { [key: string]: boolean };
+	handleSelect: (values: { [key: string]: boolean }) => void;
+}
 
-/** Shape worker types. 
- * The shape worker is the web worker that handles calulating new positions, rendering and animated transitions for the data points 
+/** Shape worker types.
+ * The shape worker is the web worker that handles calulating new positions, rendering and animated transitions for the data points
  * New positions are calculated with the vornoi module, transitions are hanlded by renderShapes.ts and the shape worker draws the shapes on the canvas
  */
 
-
 /**
- * Data used by the shape worker. 
+ * Data used by the shape worker.
  * Each feild is exctracted from a user object, by an accessor function, then repackaged as a Datum and then sent to the shape worker though a postMessage event
  */
-type Datum = { id: string; x: number; y: number; colorValue: string; shapeValue: string; sliceValue:string; ringValue:string; shouldMove:boolean };
+type Datum = { id: string; x: number; y: number; colorValue: string; shapeValue: string; sliceValue: string; ringValue: string; shouldMove: boolean };
 
 /**
  * used used to post messages to the shape worker
@@ -259,7 +302,7 @@ type ShapeWorkerUpdateStencil = ShapeWorkerMsg<"update_stencil", { stencil: numb
 /** post the new seed positions, the ids for the conatianing arcs, the data to be updated and the set of arcs that should change*/
 type ShapeWorkerUpdatePositions = ShapeWorkerMsg<"update_positions", { offsets: number[]; offsetArcIds: number[]; data: Datum[]; arcIds: Set<string> }>;
 /** post just the data to change */
-type ShapeWorkerUpdateDataWithoutMoving = ShapeWorkerMsg<"update_data_without_moving", {data: Datum[]}>;
+type ShapeWorkerUpdateDataWithoutMoving = ShapeWorkerMsg<"update_data_without_moving", { data: Datum[] }>;
 /** post an object whose keys are the slices and whose values are the angle by which to rotate each slice */
 type ShapeWorkerRotatePositions = ShapeWorkerMsg<"rotate_slice_positions", { thetas: { [slice: string]: number } }>;
 /**

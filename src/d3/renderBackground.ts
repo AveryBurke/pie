@@ -140,7 +140,7 @@ function backgroundRederer(): typeof renderer {
             }
 
             //boot
-           dequeue()
+            dequeue()
         })
     }
 
