@@ -109,6 +109,14 @@ h1 {
   opacity: 100%;
   /* transition: flex 0.3s ease-out */
 }
+.scale-container { 
+  width: 20px; 
+  height: 20px; 
+  justify-self: center; 
+  border-radius: 10%; 
+  background-color:var(--platinum);
+  fill: var(--indigo-dye);
+}
 .component-button {
   width: 80%;
   padding: .15rem .25rem .15rem .25rem;
