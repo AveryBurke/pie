@@ -161,7 +161,51 @@ declare type ComponenetPropsType = {
 	handleSort: (set: string[]) => void | undefined;
 	counts?: { [key: string]: { currentCount: number; previousCount: number } };
 	optionalDivs: ?((input: any, key: string) => JSX.Element);
-};
+}
+/** used by sidebar parameter component wrapper */
+declare interface SidebarComponentWrapperProps {
+	currentKey: string;
+	title: string;
+	options: { value: string; label: string }[];
+	ControlPanel: (props: ComponenetPropsType) => JSX.Element;
+	props: ComponenetPropsType;
+	handleChange: (input: string) => void;
+	handleReset: (input: void) => void;
+	optionalDivs?: (input: any, key: string) => JSX.Element;
+}
+/** used by popup */
+interface ModalProps {
+	isOpen: boolean;
+	hasCloseBtn?: boolean;
+	onClose?: () => void;
+	title?:string;
+	children: React.ReactNode;
+  };
+/** used by sidebar parameter componenets. create divs alongside the controle pannel, as a guid for the encodings */
+declare type ScaleGenerator = (scale: { [value: string]: string }) => (value: string, key: string) => JSX.Element;
+/** used by sidebar parameter component */
+declare interface SidebarParameterComponentProps {
+	parameter: ParameterType;
+	scaleGenerator?: ScaleGenerator;
+}
+/** use by SidebarSelectabe.ts. 
+ * an array of values, to create the initial divs, an object representing which checkboxes are checked and a callback that takes the next checked state*/
+declare interface SelectableProbs {
+	initialValues: string[];
+	selected: { [key: string]: boolean };
+	handleSelect: (values: { [key: string]: boolean }) => void;
+}
+
+/** Shape worker types.
+ * The shape worker is the web worker that handles calulating new positions, rendering and animated transitions for the data points
+ * New positions are calculated with the vornoi module, transitions are hanlded by renderShapes.ts and the shape worker draws the shapes on the canvas
+ */
+
+/**
+ * Data used by the shape worker.
+ * Each feild is exctracted from a user object, by an accessor function, then repackaged as a Datum and then sent to the shape worker though a postMessage event
+ */
+type Datum = { id: string; x: number; y: number; colorValue: string; shapeValue: string; sliceValue: string; ringValue: string; shouldMove: boolean };
 
 /** shape worker types */
 declare type ShapeWorkerMsgType =

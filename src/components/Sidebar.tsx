@@ -6,11 +6,13 @@ import SidebarFilterComponent from "./SidebarFilterComponent";
 import shapes from "../static/shapes";
 
 const colorScaleGenerator = (scale: { [key: string]: string }) => (value: string, key: string) =>
-	<div key={key} style={{ width: "20px", height: "20px", justifySelf: "center", borderRadius:"10%", backgroundColor: scale[value] }}></div>;
+	<div key={key} style={{ width: "20px", height: "20px", justifySelf: "center", borderRadius: "10%", backgroundColor: scale[value] }}></div>;
 const shapeScaleGenerator = (scale: { [key: string]: string }) => (value: string, key: string) =>
 	(
-		<div key={key} style={{ width: "20px", height: "20px", justifySelf: "center", borderRadius:"10%", backgroundColor:"whitesmoke" }}>
-			<svg style={{width:'100%', height:"100%"}}><path style={{transform:"translate(10px,10px)",fill:"none",stroke:"black"}} d={shapes(scale[value] as SymbolName, 5.05 )}></path></svg>
+		<div key={key} style={{ width: "20px", height: "20px", justifySelf: "center", borderRadius: "10%", backgroundColor: "whitesmoke" }}>
+			<svg style={{ width: "100%", height: "100%" }}>
+				<path style={{ transform: "translate(10px,10px)", fill: "none", stroke: "black" }} d={shapes(scale[value] as SymbolName, 5.05)}></path>
+			</svg>
 		</div>
 	);
 
@@ -30,10 +32,10 @@ const Sidebar = () => {
 				{sidebarState === "open" ? <span>&#60;</span> : <span>&#62;</span>}
 			</div>
 			{/* <GenerateData /> */}
-			<SidebarParameterComponent parameter="slice" />
-			<SidebarParameterComponent parameter="ring" />
-			<SidebarParameterComponent parameter="color" scaleGenerator={colorScaleGenerator} />
-			<SidebarParameterComponent parameter="shape" scaleGenerator={shapeScaleGenerator} />
+			<SidebarParameterComponent {...{ parameter: "slice" }} />
+			<SidebarParameterComponent {...{ parameter: "ring" }} />
+			<SidebarParameterComponent {...{ parameter: "color", scaleGenerator: colorScaleGenerator }} />
+			<SidebarParameterComponent {...{ parameter: "shape", scaleGenerator: shapeScaleGenerator }} />
 			<SidebarFilterComponent />
 		</div>
 	);
