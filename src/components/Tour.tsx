@@ -38,19 +38,6 @@ const Tour = () => {
 		}
 	};
 
-	// const callback = (data: Joyride.CallBackProps) => {
-	// 	console.log(data);
-	// 	const { action, index, type, status } = data;
-	// 	if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
-	// 		// Check whether next or back button click and update the step
-	// 		if (dispatch)
-	// 			dispatch({
-	// 				type: "next",
-	// 				payload: { ...tourState!, stepIndex: index + (action === ACTIONS.PREV ? -1 : 1) },
-	// 			});
-	// 	}
-	// };
-
 	return <Joyride callback={handleJoyrideCallback} continuous run={run} scrollToFirstStep showProgress showSkipButton stepIndex={stepIndex} steps={steps} />;
 };
 
