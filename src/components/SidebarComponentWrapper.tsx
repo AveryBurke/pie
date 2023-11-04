@@ -93,13 +93,14 @@ const SidebarComponentWrapper = ({
                     label: currentKey
                 }}
                 onChange={e => e ? handleChange(e.value) : console.log(e)}
+                id = {`${title}_select`}
             />
             <animated.div style={{ width: "100%", overflow: "hidden", ...heightStyles }}>
                 <div
                     style={{ width: '100%'}}
                     ref={activateRef}
                     >
-                    <div hidden={currentKey.includes(dummyValue)}>
+                    <div hidden={currentKey.includes(dummyValue)} id = {`${title}_controle_panel`}>
                         <ControlPanel {...props} />
                     </div>
                 </div>

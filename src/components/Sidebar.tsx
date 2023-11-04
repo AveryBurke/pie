@@ -43,10 +43,10 @@ const Sidebar = () => {
 				{sidebarState === "open" ? <span>&#60;</span> : <span>&#62;</span>}
 			</div>
 			{/* <GenerateData /> */}
-			<SidebarParameterComponent parameter="slice" />
-			<SidebarParameterComponent parameter="ring" />
-			<SidebarParameterComponent parameter="color" scaleGenerator={colorScaleGenerator} />
-			<SidebarParameterComponent parameter="shape" scaleGenerator={shapeScaleGenerator} />
+			<SidebarParameterComponent {...{ parameter: "slice" }} />
+			<SidebarParameterComponent {...{ parameter: "ring" }} />
+			<SidebarParameterComponent {...{ parameter: "color", scaleGenerator: colorScaleGenerator }} />
+			<SidebarParameterComponent {...{ parameter: "shape", scaleGenerator: shapeScaleGenerator }} />
 			<SidebarFilterComponent />
 		</div>
 	);

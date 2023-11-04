@@ -238,6 +238,14 @@ declare interface SidebarComponentWrapperProps {
 	handleReset: (input: void) => void;
 	optionalDivs?: (input: any, key: string) => JSX.Element;
 }
+/** used by popup */
+interface ModalProps {
+	isOpen: boolean;
+	hasCloseBtn?: boolean;
+	onClose?: () => void;
+	title?:string;
+	children: React.ReactNode;
+  };
 /** used by sidebar parameter componenets. create divs alongside the controle pannel, as a guid for the encodings */
 declare type ScaleGenerator = (scale: { [value: string]: string }) => (value: string, key: string) => JSX.Element;
 /** used by sidebar parameter component */
@@ -257,6 +265,12 @@ declare interface SelectableProbs {
  * The shape worker is the web worker that handles calulating new positions, rendering and animated transitions for the data points
  * New positions are calculated with the vornoi module, transitions are hanlded by renderShapes.ts and the shape worker draws the shapes on the canvas
  */
+
+/**
+ * Data used by the shape worker.
+ * Each feild is exctracted from a user object, by an accessor function, then repackaged as a Datum and then sent to the shape worker though a postMessage event
+ */
+type Datum = { id: string; x: number; y: number; colorValue: string; shapeValue: string; sliceValue: string; ringValue: string; shouldMove: boolean };
 
 /**
  * Data used by the shape worker.

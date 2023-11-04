@@ -9,7 +9,7 @@ const SidebarContext = React.createContext< Values | null>(null);
 
 const SidebarContextProvider = (props: any) => {
 
-  const [sidebarState, setSidebarState] = useState<'open' | 'close'>('open')
+  const [sidebarState, setSidebarState] = useState<'open' | 'close'>('close')
 
   return (
     <SidebarContext.Provider
