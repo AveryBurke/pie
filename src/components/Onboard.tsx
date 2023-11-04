@@ -31,10 +31,10 @@ const Onboard = () => {
 		<Fragment>
 			<p key="0">Pie is a demo data visualization app that automatically generates an interactive bullseye plot from tabular data.</p>
 			<p key="1">
-				A bullseye plot is a type of data visualization that represents data in concentric rings and slices, making it easy to compare data points across
+				A bullseye plot is a data visualization that represents data in concentric rings and slices, making it easy to compare data points across
 				different categories.
 			</p>
-			<p key="2">We don't have a database (yet) so we generated a table of <span style={{fontWeight:"bold"}}>{data.length} random users</span> and started a random chart for you. You can customize the char useing the sidebar.</p>
+			<p key="2">We don't have a database (yet) so we've generated a table of <span style={{fontWeight:"bold"}}>{data.length} random users</span> and started a random chart for you.</p>
 			<p key="3">The first three rows of the data look like this: </p>
 			<div className="tableContainer">{table}</div>
 		</Fragment>

@@ -38,16 +38,26 @@ const OnboardContextProvider = (props: React.PropsWithChildren) => {
 		},
 		{
 			target: "#slice_sidebar-component",
-			content: "Use the controle pannels to change the chart's parameters.",
+			content: "You can adjust or change the chart's slices using the slice controle panel.",
 			disableBeacon: true,
 			disableOverlayClose: true,
 			placement: "right",
+			styles: {
+				options: {
+					zIndex: 10000,
+				},
+			},
 		},
 		{
 			target: "#slice_select",
 			content: `The chart's slices are set to the ${camelToFlat(state?.parameters.slice.key!)} column. But you can select another column using this dropdown`,
 			disableBeacon: true,
 			disableOverlayClose: true,
+			styles: {
+				options: {
+					zIndex: 10000,
+				},
+			},
 			placement: "top",
 		},
 		{
