@@ -8,7 +8,8 @@
     "build": "parcel build --no-cache",
     "browserify": "browserify src/DOMImplementation.js --s xmldom > src/DOMImplementation_bundle.js",
     "predeploy": "rm -rf dist && yarn build src/index.html --public-url https://averyburke.github.io/pie/",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist",
+    "docs": "typedoc --out docs custom-types/index.d.ts"
   },
   "dependencies": {
     "@faker-js/faker": "^7.6.0",
@@ -40,6 +41,7 @@
     "react-spring": "^9.7.1",
     "svg-path-properties": "^1.1.0",
     "twgl.js": "^5.3.1",
+    "typedoc": "^0.25.3",
     "typescript": "^4.9.5"
   },
   "devDependencies": {

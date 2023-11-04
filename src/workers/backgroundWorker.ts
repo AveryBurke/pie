@@ -10,9 +10,23 @@ import IndexedSet from "../static/indexedSet";
 // @ts-ignore
 import xmldom from "../domparser_bundle";
 
+/**
+ * the background worker manages the chart's background--the slices, the rings and the arc segments made up by the intersection of the two.
+ * it handles the calulations needed for the end stages of each animated transition and then passes those to a renderer.
+ * The renderer uses d3 to create animated transitions which are appended to a document. The background worker extacts those transtions from the document and draws them to the canvas
+ * 
+ * The background worker also returns data to the caller though the postMessage event, for calulating new shape positions.
+ * The return data consists of an array of coordinates of the triangulation of eacah arc and integer ids for the respective arcs
+ * as well as random x y coordiantes for each point in an arc, along with an integer id a point's containing arc
+ */
+
+/** 
+ * web workers can't access the DOM. 
+ * This is a bundled version of a headless DOM api. It exposes just enough api surface for d3 functions to use 
+ */
 const DOMImplementation = xmldom.DOMImplementation;
 
-const backgroundWorker: Worker = self as any;
+const backgroundWorker: BackgroundWorker = self as any;
 
 class worker {
 	background: ReturnType<typeof renderBackground> = renderBackground();
@@ -46,6 +60,10 @@ class worker {
 		this.arcCount = arcCount;
 	}
 
+	/**
+	 * The draw callback for the renderer.
+	 * Selects children from the .custom element, on the document and draws them to the chart
+	 */
 	draw() {
 		const { ctx, canvasWidth, canvasHeight, ratio } = this;
 		if (ctx) {
@@ -70,12 +88,11 @@ class worker {
 					}
 				});
 			ctx.globalAlpha = 1;
-
 			ctx.restore();
 		}
 	}
 
-	/** "add" and "remove" are only for the id set. there is no penalty for duplicate adds*/
+	// "add" and "remove" are only for the id set. there is no penalty for duplicate adds
 	generateArcs(state: "add" | "remove" = "add") {
 		const { ringSet, ringHeights, sliceSet, sliceColors, sliceAngles, arcCount } = this;
 		return sliceSet.reduce<Section[]>((acc, slice) => {
@@ -152,7 +169,7 @@ class worker {
 
 		queue.enqueue({ type: "sections", input: initialSections });
 
-		select(this.dom).call(
+		select(this.dom).call(	
 			this.background
 				.queue(queue)
 				.generator(arc())

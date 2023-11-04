@@ -5,14 +5,25 @@ import SidebarParameterComponent from "./SidebarParameterComponent";
 import SidebarFilterComponent from "./SidebarFilterComponent";
 import shapes from "../static/shapes";
 
-const colorScaleGenerator = (scale: { [key: string]: string }) => (value: string, key: string) =>
-	<div key={key} style={{ width: "20px", height: "20px", justifySelf: "center", borderRadius: "10%", backgroundColor: scale[value] }}></div>;
-const shapeScaleGenerator = (scale: { [key: string]: string }) => (value: string, key: string) =>
+//note: move sclae generators to their own files
+
+/**
+ * creates a function for rendering color-coded divs
+ * @param scale an object whose keys are all the members of the parameter's set and whose values are hex colors
+ * @returns a function that takes a member of the parameter's set and returns a div with the coresponding background color
+ */
+const colorScaleGenerator:ScaleGenerator = (scale) => (value, key) =>
+	<div key={key} className="scale-container" style={{ backgroundColor: scale[value] }}></div>;
+
+/**
+ * creates a function for redering svg shapes inside of containing divs
+ * @param scale an object whose keys are all the members of the parameter's set and whose values are svg path data
+ * @returns a funciton that takes a member of the parameter's set and returns an svg element with the coresponding shape
+ */
+const shapeScaleGenerator:ScaleGenerator = (scale) => (value, key) =>
 	(
-		<div key={key} style={{ width: "20px", height: "20px", justifySelf: "center", borderRadius: "10%", backgroundColor: "whitesmoke" }}>
-			<svg style={{ width: "100%", height: "100%" }}>
-				<path style={{ transform: "translate(10px,10px)", fill: "none", stroke: "black" }} d={shapes(scale[value] as SymbolName, 5.05)}></path>
-			</svg>
+		<div key={key} className="scale-container">
+			<svg style={{width:'100%', height:"100%"}}><path style={{transform:"translate(10px,10px)"}} d={shapes(scale[value] as SymbolName, 5.05 )}></path></svg>
 		</div>
 	);
 

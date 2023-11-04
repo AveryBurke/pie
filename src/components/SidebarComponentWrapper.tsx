@@ -1,11 +1,16 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, PropsWithChildren, ReactComponentElement } from "react";
 import useHeight from "../hooks/useHeight";
 import Select from 'react-select'
 import { useSpring, animated } from 'react-spring'
 import { easings } from '@react-spring/web'
 import { dummyValue } from "../static/initialState";
-import { style } from "d3-selection";
 
+/**
+ * create a sidebar component that manages one slice of state
+ * used to generate sidebar parameter components {@link ./SidebarParameterComponent} and used to create sidebar filter component {@link ./SidebarFilterComponent}
+ * @param param0 props for creating a sidebar component
+ * @returns {JSX.Element} a sidebar component
+ */
 const SidebarComponentWrapper = ({
     currentKey,
     title,
@@ -14,17 +19,7 @@ const SidebarComponentWrapper = ({
     props,
     handleChange,
     handleReset
-}: {  
-    
-    currentKey:string
-    title: string,
-    options: { value: string, label: string }[],
-    ControlPanel: (props: ComponenetPropsType) => JSX.Element,
-    props: ComponenetPropsType
-    handleChange: (input: string) => void
-    handleReset: (input: void) => void
-    optionalDivs?:(input:any, key:string) => JSX.Element
-}) => {
+}: PropsWithChildren<SidebarComponentWrapperProps>) => {
 
     const [heightOn, setHeightOn] = useState(false);
     const [sizingRef, contentHeight] = useHeight({ on: heightOn });

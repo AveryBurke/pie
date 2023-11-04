@@ -118,6 +118,14 @@ h1 {
 	background-color: var(--platinum);
 	fill: var(--indigo-dye);
 }
+.scale-container { 
+  width: 20px; 
+  height: 20px; 
+  justify-self: center; 
+  border-radius: 10%; 
+  background-color:var(--platinum);
+  fill: var(--indigo-dye);
+}
 .component-button {
 	width: 80%;
 	padding: 0.15rem 0.25rem 0.15rem 0.25rem;

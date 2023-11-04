@@ -1,6 +1,6 @@
 const randomParameter = (
   users: User[],
-  pallet: { [key: string]: `#${string}`[] },
+  pallet: { [key: string]: string[] },
   limit: "small" | "medium" | "large"
 ): Parameter => {
   let possibleKeys: (keyof User)[] = [];
