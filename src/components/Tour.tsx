@@ -38,7 +38,31 @@ const Tour = () => {
 		}
 	};
 
-	return <Joyride callback={handleJoyrideCallback} continuous run={run} scrollToFirstStep showProgress showSkipButton stepIndex={stepIndex} steps={steps} />;
+	return <Joyride 
+        callback={handleJoyrideCallback} 
+        continuous 
+        run={run} 
+        scrollToFirstStep 
+        showProgress 
+        showSkipButton 
+        stepIndex={stepIndex} 
+        steps={steps} 
+        styles={{
+            options:{
+                textColor: "#ebebe8ff",
+                backgroundColor: "#0b3d64ff",
+                arrowColor: "#0b3d64ff",
+                
+            },
+            buttonNext:{
+                backgroundColor:"#e96838ff",
+                color: "#0b3d64ff",
+            },
+            buttonBack:{
+                color:"#e96838ff"
+            }
+        }}
+        />;
 };
 
 export default Tour;

@@ -1,6 +1,7 @@
 import React, { useReducer, useContext, ReactNode } from "react";
 import { GenericContext } from "./Context";
 import Joyride from "react-joyride";
+import camelToFlat from "../static/camelToFlat";
 
 interface TourState {
 	run: boolean;
@@ -50,7 +51,7 @@ const OnboardContextProvider = (props: React.PropsWithChildren) => {
 		},
 		{
 			target: "#slice_select",
-			content: `The chart's slices are set to the ${camelToFlat(state?.parameters.slice.key!)} column. But you can select another column using this dropdown`,
+			content: (<div>The chart's slices are set to the <span style={{fontWeight:"bold"}}>{camelToFlat(state?.parameters.slice.key!)}</span> column. But you can select another column using this dropdown</div>),
 			disableBeacon: true,
 			disableOverlayClose: true,
 			styles: {
@@ -62,18 +63,18 @@ const OnboardContextProvider = (props: React.PropsWithChildren) => {
 		},
 		{
 			target: "#slice_controle_panel",
-			content: `There are ${state?.parameters.slice.set.length} unique values in the ${camelToFlat(
+			content: (<div>There are <span style={{fontWeight:'bold'}}>{state?.parameters.slice.set.length}</span> unique values in the <span style={{fontWeight:"bold"}}>{camelToFlat(
 				state?.parameters.slice.key!
-			)} column. These determin the slices. You can reorder the slices by draging the elements in the controle panel`,
+			)}</span> column. These determin the slices. You can reorder the slices by draging the elements in the controle panel</div>),
 			disableBeacon: true,
 			disableOverlayClose: true,
 			placement: "right",
 		},
 		{
 			target: "#color_sidebar-component",
-			content: `The users are colored according to their ${camelToFlat(
+			content: <div>The users are colored according to their <span style={{fontWeight:"bold"}}>{camelToFlat(
 				state?.parameters.color.key!
-			)} values. But you can select another column for color-coding. You can also select a shape coding.`,
+			)}</span> values. But you can select another column for color-coding. You can also select a shape coding.</div>,
 			disableBeacon: true,
 			disableOverlayClose: true,
 			placement: "right",
@@ -92,8 +93,6 @@ const OnboardContextProvider = (props: React.PropsWithChildren) => {
 	return <OnboardContext.Provider value={{ tourState, dispatch }}>{props.children}</OnboardContext.Provider>;
 };
 
-function camelToFlat(s: string) {
-	return s.replace(/[A-Z]/g, " $&").toUpperCase();
-}
+
 
 export { OnboardContext, OnboardContextProvider };

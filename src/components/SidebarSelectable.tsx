@@ -5,7 +5,7 @@ import React, { Fragment, PropsWithChildren } from "react";
  * @param param0 an array of values, to create the initial divs, an object representing which checkboxes are checked and a callback that takes the next checked state
  * @returns 
  */
-const Selectable = ({ initialValues, selected, handleSelect }: PropsWithChildren<SelectableProbs>) => {
+const Selectable:React.FunctionComponent<SelectableProbs> = ({ initialValues, selected, handleSelect }) => {
 
     /**
      * toggle the the selected state of the selected checkbox and pass the new selected object to the callback

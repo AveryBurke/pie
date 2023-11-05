@@ -5,6 +5,7 @@ import { FilterContext } from "../contexts/FilterContext";
 import { dummyValue } from "../static/initialState";
 import Sortable from "./SidebarSortable";
 import SidebarComponentWrapper from "./SidebarComponentWrapper";
+import camelToFlat from "../static/camelToFlat";
 
 /**
  * for a given parameter create a sidebar component {@link ./SidebarComponentWrapper} with an optional extra visula guide
@@ -19,7 +20,7 @@ const SidebarParameterComponent = ({ parameter, scaleGenerator }: PropsWithChild
 		const { key, set, scale } = state.parameters[parameter];
 
 		const options = Object.keys(state.data[0]).reduce<{ value: string; label: string }[]>((acc, option) => {
-			if (!option.includes(dummyValue)) acc = [{ value: option, label: option }, ...acc];
+			if (!option.includes(dummyValue)) acc = [{ value: option, label: camelToFlat(option) }, ...acc];
 			return acc;
 		}, []);
 

@@ -5,6 +5,7 @@ import { SidebarContext } from "../contexts/SidebarContex";
 import Tour from "./Tour";
 import Popup from "./Popup";
 import dummyValue from "../static/dummyValue";
+import camelToFlat from "../static/camelToFlat";
 
 /** onboard new users. show the modal and start the tour when the modal closes  */
 const Onboard = () => {
@@ -31,11 +32,11 @@ const Onboard = () => {
 		<Fragment>
 			<p key="0">Pie is a demo data visualization app that automatically generates an interactive bullseye plot from tabular data.</p>
 			<p key="1">
-				A bullseye plot is a data visualization that represents data in concentric rings and slices, making it easy to compare data points across
+				A bullseye plot is a visualization that represents data in concentric rings and slices, making it easy to compare points across
 				different categories.
 			</p>
-			<p key="2">We don't have a database (yet) so we've generated a table of <span style={{fontWeight:"bold"}}>{data.length} random users</span> and started a random chart for you.</p>
-			<p key="3">The first three rows of the data look like this: </p>
+			<p key="2">We don't have a database (yet) so we've generated a table of <span style={{fontWeight:"bold"}}>{data.length} random users</span> and started a chart for you.</p>
+			<p key="3">The first three rows of your data look like this: </p>
 			<div className="tableContainer">{table}</div>
 		</Fragment>
 	);
@@ -53,7 +54,7 @@ function makeTable(headers: string[], rows: any[]) {
 		<thead>
 			<tr key="header row">
 				{headers.map((header) => (
-					<th key={header + "_header"}>{header}</th>
+					<th key={header + "_header"}>{camelToFlat(header)}</th>
 				))}
 			</tr>
 		</thead>
